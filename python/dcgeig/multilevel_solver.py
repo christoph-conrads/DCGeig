@@ -120,7 +120,7 @@ def impl(options, K, M, level, ptree):
         return d, X, tools.make_stats_tree(**locals())
 
 
-    LU = LA.splu(K)
+    LU = LA.splu(K, diag_pivot_thresh=0)
 
     wallclock_time_sle = 0
     wallclock_time_rr = 0
