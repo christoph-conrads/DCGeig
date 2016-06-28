@@ -1,0 +1,136 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
+# Copyright 2015-2016 Christoph Conrads
+#
+# This file is part of DCGeig and it is subject to the terms of the DCGeig
+# license. See http://DCGeig.tech/license for a copy of this license.
+
+import numpy as N
+import numpy.matlib as ML
+import numpy.linalg as NL
+import numpy.random
+
+import scipy.sparse
+import scipy.linalg as SL
+
+import scipy.io as IO
+
+import dcgeig.solvers as gep_solvers
+import dcgeig.error_analysis as EA
+import dcgeig.utils as utils
+
+import time
+
+import sys
+import os.path as OP
+
+
+
+def main(argv):
+    solvers = {
+        'standard': gep_solvers.standard,
+        'qr_csd': gep_solvers.qr_csd,
+        'gsvd': gep_solvers.gsvd,
+        'deflation': gep_solvers.deflation
+    }
+
+
+    # check input
+    if not argv or len(argv) < 2 or len(argv) > 3:
+        print 'usage: python {0} <file> [precision]'.format(argv[0])
+        return 0
+
+
+    raw_path = argv[1]
+    precision = argv[2] if len(argv) == 3 else 'double'
+
+
+    # get paths, matrices
+    path = OP.expanduser(raw_path)
+    k_path = path if OP.isabs(path) else OP.abspath(path)
+
+    A = IO.mmread(k_path)
+    n = A.shape[0]
+
+    k_dirname = OP.dirname(k_path)
+    k_basename = OP.basename(k_path)
+    assert k_basename != ''
+
+
+    B = scipy.sparse.identity(n)
+    if str.count(k_basename, 'k') == 1:
+        m_basename = str.replace(k_basename, 'k', 'm')
+        m_path = OP.join(k_dirname, m_basename)
+
+        try:
+            B = IO.mmread(m_path)
+        except IOError as e:
+            if e.errno != 2:
+                raise
+
+
+    # set precision
+    if precision not in ['single', 'double']:
+        fmt = 'precision must be "single" or "double" instead of "{0}"'
+        print fmt.format(precision)
+        return 0
+
+
+    dtype = N.float32 if precision == 'single' else N.float64
+    eps = N.finfo(dtype).eps
+
+
+    # get problem name
+    if k_basename.endswith('.mtx.gz'):
+        problem = str.replace(k_basename, '.mtx.gz', '')
+    elif k_basename.endswith('.mtx.bz2'):
+        problem = str.replace(k_basename, '.mtx.bz2', '')
+    elif k_basename.endswith('.mtx'):
+        problem = str.replace(k_basename, '.mtx', '')
+    else:
+        raise ValueError('unknown file type: "{0}"'.format(k_basename))
+
+
+    # unitary equivalence transformation
+    A = A.todense()
+    B = B.todense()
+
+    rand = numpy.random.RandomState(1)
+    Z = rand.uniform(-1, +1, [n,n])
+    Q, _ = SL.qr(Z)
+    Q = ML.matrix(Q)
+
+    A = utils.force_hermiticity( Q * A * Q.H )
+    B = utils.force_hermiticity( Q * B * Q.H )
+
+    A = A.astype(dtype)
+    B = B.astype(dtype)
+
+    for solver_name in solvers:
+        solver = solvers[solver_name]
+
+        start = time.clock()
+
+        try:
+            d, X = solver(A, B)
+
+            end = time.clock()
+            delta = abs(end - start)
+
+            eta_max = max(EA.compute_backward_error(A, B, d, X))
+
+            fmt = '{0:10} {1:4} {2:10} {3:e} {4:e}'
+            print fmt.format(problem, n, solver_name, delta, eta_max/(n*eps))
+
+        except NL.LinAlgError as e:
+            end = time.clock()
+            delta = abs(end - start)
+
+            fmt = '{0:10} {1:4} {2:10} {3:e} "{4}"'
+            print fmt.format(problem, n, solver_name, delta, e)
+
+
+
+if __name__ == '__main__':
+    sys.exit( main(sys.argv) )

@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Copyright 2016 Christoph Conrads
+#
+# This file is part of DCGeig and it is subject to the terms of the DCGeig
+# license. See https://DCGeig.tech/license for a copy of this license.
+
+set -e
+
+if [ $# -ne 2 ]
+then
+	aout=$(basename -- "$0")
+	echo "usage: ${aout} <key> <problems>"
+	exit 1
+fi
+
+
+GIT_COMMIT='@GIT_COMMIT@'
+
+key=$1
+problems=$2
+
+stdout="${key}.out"
+
+exec 3<${problems}
+exec 1> >(tee --ignore-interrupts -- ${stdout})
+
+# print header
+echo benchmark multilevel-gep-solver
+echo git commit ${GIT_COMMIT}
+echo hostname $(hostname)
+echo cpu model \
+	$(fgrep "model name" /proc/cpuinfo | sort --unique | sed 's/^.*: //')
+date --iso-8601='minutes'
+
+set +e
+
+time \
+(
+	trap 'exit' SIGINT
+
+	while read -u3 args
+	do
+		path=$(gawk '{print $1}' <<< ${args})
+		file=$(basename -- ${path})
+		problem=$(basename --suffix=.mtx -- ${path})
+		stats="${problem}.${key}.log"
+		stderr="${problem}.${key}.err"
+
+		multilevel-gep-solver \
+			--quiet \
+			--stats ${stats} \
+			-- ${args} \
+			2>${stderr}
+
+		if [ $? -ne 0 ]
+		then
+			echo -E ${args} error
+		fi
+	done;
+)

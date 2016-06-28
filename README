@@ -1,0 +1,264 @@
+README
+
+This folder contains the source code of DCGeig, a collection of dense and sparse
+solver for generalized eigenvalue problems with real symmetric positive
+semidefinite matrices.
+
+DCGeig is based on the source code for the master's thesis "Projection Methods
+for Generalized Eigenvalue Problems" by Christoph Conrads.
+
+
+
+INSTALLATION
+
+You need the following software:
+- Python 2.7
+- Cython
+- NumPy
+- SciPy
+- BLAS
+- LAPACK 3.6.0
+- GCC C compiler
+- GCC C++ compiler 4.7 or newer
+- cmake 3.2 or newer
+- METIS 5.0 or newer
+- git
+- bash
+
+BLAS and LAPACK can also be provided by Intel MKL 11.2 (or newer) and
+instructions for this build are given below. Note that NumPy and SciPy need to
+be linked against Intel MKL, too, if you want to see any speed-up. Instructions
+for such a build can be found here:
+  https://christoph-conrads.name/building-numpy-and-scipy-with-intel-compilers-and-intel-mkl/
+
+All instructions below are to be executed in bash.
+
+
+Installation with BLAS and LAPACK:
+- Locate the source code. In the following, we assume the bash variable
+  "sourcedir" contains the path to the directory with the source code. Test if
+  the variable is set correctly by typing
+    echo ${sourcedir}
+  in bash (variables != environment variables).
+
+- Decide where to install and save the path in a variable, e.g., if you want to
+  install the solvers in your home directory, type
+    prefixdir=$(echo ~)
+
+- Create a new directory for the build and change into it:
+	builddir=$(mktemp -d)
+	cd ${builddir}
+
+- Configure the build with cmake:
+    cmake \
+	  -DCMAKE_INSTALL_PREFIX="${prefixdir}" \
+	  "${sourcedir}"
+
+- Build the solvers:
+    make -j
+
+- Install the solvers:
+    make install
+
+
+Installation with Intel MKL
+- Proceed as in the installation with BLAS and LAPACK until you have to
+  configure the build with cmake
+
+- Ensure the Intel MKL environment variable MKLROOT is set:
+    echo ${MKLROOT}
+
+- Configure the build with cmake:
+    cmake \
+	  -DCMAKE_INSTALL_PREFIX="${prefixdir}" \
+	  -DUSE_MKL=ON \
+	  -DMKL_INCLUDE_DIR=${MKLROOT}/include \
+	  -DMKL_LIBRARY_PATH=${MKLROOT}/lib/intel64 \
+	  "${sourcedir}"
+
+- Build the solvers:
+    make -j
+
+- Install the solvers:
+    make install
+
+
+Updating Search Paths
+
+Some of the software is written in Python 2. The Python interpreter has a
+built-in list of paths where it searches for Python packages. Similarly, the
+linker tries to find the library containing the dense solvers in certain
+standard directories. If you installed the solvers in a non-standard location,
+e.g., your home directory, then you need to set the environment variables
+LD_LIBRARY_PATH and PYTHONPATH *whenever* you want to run the solvers:
+
+  export PYTHONPATH=$PYTHONPATH:${prefixdir}/lib/python2.7/site-packages/
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${prefixdir}/lib
+
+Furthermore, the variable LD_LIBRARY_PATH needs to contain the path to the Intel
+MKL libraries.
+
+You can test the Python code with the following command:
+    python2 -m unittest discover dcgeig.tests
+
+
+
+PROGRAMS
+
+multilevel-gep-solver:
+  This program solves large, sparse generalized eigenvalue problems with
+  Hermitian positive definite matrices. Its usage can be queried by calling
+    multilevel-gep-solver --help
+
+  There are two obligatory arguments. The first argument is the path to a file
+  in Matrix Market format (.mtx) containing the stiffness matrix of a matrix
+  pencil. The file can be compressed with gzip or bzip2 (.mtx.gz, .mtx.bz2). In
+  order to find the corresponding mass matrix, the first occurence of the letter
+  'k' will be replaced by the letter 'm'. If no mass matrix can be found, the
+  solver assumes it deals with a standard eigenvalue problem. The second
+  argument is the cutoff value: the solver tries to find all eigenpairs
+  (\lambda, x) where \lambda is less than or equal to the cutoff.
+
+  The '--stats <file>' causes the solver to print subproblems statistics in the
+  given file. Below a whole section explains the contents of these files.
+
+
+benchmark-gep-solver:
+  Given a file with test problems and cutoff values, this program repeatedly
+  calls the multilevel-gep-solver saving its (standard) output and its --stats
+  output. Call
+    benchmark-gep-solver <key> <problems>
+  to use it. The key is a user-provided sequence of letters and digits used in
+  the filenames. For example, given the key 'foo123', the standard output will
+  be saved in the file 'foo123.out' and the --stats output of the problem
+  bcsstk13.mtx will be saved in 'bcsstk13.mtx.foo123.log'.
+
+
+solve-gep:
+  This program solves a dense GEP with all four dense solvers presented in the
+  thesis:
+  - the standard solver (reduction to a standard eigenvalue problem);
+  - deflation of infinite eigenvalues, then calling the standard solver;
+  - direct GSVD;
+  - GSVD via QR factorizations and CS decomposition.
+  A unitary congruence transformation is applied before calling the GEP solvers.
+  This operation is supposed to avoid diagonal mass and matrices and to force
+  the GEP solver to decide on the rank of the mass matrix (rank decisions are
+  trivial with diagonal matrices).
+
+  For every solver, the program prints
+  - the name of the problem,
+  - the dimension of the problem $n$,
+  - the solver name,
+  - the solver time in seconds,
+  - the maximum backward error divided by n*eps.
+
+  To call the program, use
+    solve-gep <path to stiffness matrix> [precision]
+  The stiffness matrix has to be in Matrix Market format (.mtx) and can be
+  compressed with gzip (.mtx.gz) or with bzip2 (.mtx.bz2). If a mass matrix
+  cannot be found, the program assumes it has to solve a standard eigenvalue
+  problem. The optional 'precision' option default to 'double'; you can also set
+  'single'.
+
+  With Netlib BLAS and LAPACK, solving problems with 3600 degrees of freedom by
+  means of direct GSVD takes several hours on the author's computer. For small
+  problems (n=1,2,3,4), the largest backward error of the solutions computed by
+  GSVD-based solvers may be larger than n*eps.
+
+
+
+STATS OUTPUT
+
+This section explains the columns in the stats generated by the '--stats'
+argument to multilevel-gep-solver. Every row contains data about the subproblems
+encountered by the solver. A subproblem is considered solved if every eigenpair
+(\lambda, x), \lambda <= \lambda_c, is considered accurate. An eigenpair is
+considered accurate if the backward error is less than the single precision
+epsilon and if the relative forward error is less than one. An eigenpair
+(\lambda, x) is called "desired" if \lambda \leq \lambda_c.
+
+- id
+    A unique id generated by a post-order traversal of the partitioning tree.
+	Consequently the lowest id belongs to a subproblem that will be solved
+	directly while the largest id is the "subproblem" for finding eigenpairs of
+	the complete GEP.
+- lvl
+    The depth in the recursion tree. The complete GEP is at level 0.
+- n
+    The dimension of the subproblem
+- n_c
+	The number of eigenpairs (\lambda, x) with \lambda <= \lambda_c *after*
+	solving the subproblem. If there is no such eigenpair, then n_c will be set
+	to one so that at least one eigenpair has to fulfill the convergence
+	criterion.
+- n_s
+    The size of the search space *after* solving the subproblem. The size of the
+	search space *before* solving the subproblem can be calculated as follows:
+	- If the subproblem was solved directly, then the initial search space was
+	  all of the $n$-dimension space, i.e., n = n_s.
+	- Otherwise, the problem possesses a nested dissection ordering structure
+	  with two substructure blocks and one coupling block. The initial search
+	  space size is the sum of the search space returned by the two subproblems
+	  in the structure blocks plus the size of the coupling block.
+    n_s is always at least 32 in order to avoid empty search spaces.
+- min:ev
+	The minimum eigenvalue in the search space *after* solving a subproblem.
+- max:ev
+	The largest eigenvalue in the search space *after* solving a subproblem.
+- min:be
+  The smallest backward error of all eigenpairs (\lambda, x), \lambda <=
+  \lambda_c.
+- max:be
+  The largest backward error of all eigenpairs (\lambda, x), \lambda <=
+  \lambda_c.
+- min:fe
+  The smallest relative forward error of all eigenpairs (\lambda, x), \lambda <=
+  \lambda_c.
+- iter
+  The number of subspace iterations until all desired eigenpairs fulfilled the
+  convergence criterion.
+- t-sle
+  The cumulative wall-clock time spent on solving systems of linear equations
+  Kx=b, during subspace iteration.
+- t-rr
+  The cumulative wall-clock time spent on the Rayleigh-Ritz procedure during
+  subspace iteration.
+- t-wc
+  If the subproblem is solved directly, then this is the wall-clock time it took
+  to solve the subproblem directly. Otherwise, divide-and-conquer (divide,
+  conquer, combine) is applied. In this case, t-wc refers to the wall-clock
+  time for the combine phase. The divide phase is ignored because it is
+  comparatively cheap. It holds that t-wc >= t-sle + t-rr.
+- t-cpu
+  Like t-wc but with CPU time instead of wall-clock time.
+- mems
+  Estimated "static" memory consumption by
+  - mass and stiffness matrix,
+  - Schur complement.
+- memd
+  "Dynamic" memory consumption, i.e., the memory required by
+  - eigenvalues,
+  - eigenvectors,
+  - backward error values,
+  - forward error values
+  in the current subproblem.
+
+The sum of memd and mems is not the overall memory consumption of the program
+because:
+- the Schur complements are precomputed once before starting to solve the GEP
+  recursively. Consequently the Schur complements of all subproblems are live
+  at the same time. mems just reports the memory consumption of the Schur
+  complement of the current subproblem;
+- every subproblems has its own copy of the submatrix at hand, i.e., if the GEP
+  (K, M) is decomposed into subproblems (K11, M11), (K22, M22), then K11, M11,
+  K22, M22 occupy memory locations distinct from the locations of K and M in
+  memory.
+Thus, at the lowest level of recursion (where problems are solved directly),
+memory is occupied by K, M, Kii, Mii, i=1,2, and so on.
+
+
+
+CREDITS
+
+Christoph Conrads
