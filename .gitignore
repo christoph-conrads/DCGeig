@@ -1,0 +1,9 @@
+a.out
+core
+*.o
+*.so
+*.pyc
+*.mex*
+
+.*.swp
+.nfs*
