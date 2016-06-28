@@ -25,61 +25,13 @@
 // add declarations not present in LAPACK 3.5.0
 extern "C"
 {
-void slapmt(
-	const lapack_int* forward, const lapack_int* m, const lapack_int* n,
-	float* A, const lapack_int* lda, lapack_int* piv);
-
-void dlapmt(
-	const lapack_int* forward, const lapack_int* m, const lapack_int* n,
-	double* A, const lapack_int* lda, lapack_int* piv);
-
-
-
-void slascl(
-	const char* type, const lapack_int* kl, const lapack_int* ku,
-	const float* cfrom, const float* cto,
-	const lapack_int* m, const lapack_int* n,
-	float* A, const lapack_int* lda, lapack_int* info);
-
-void dlascl(
-	const char* type, const lapack_int* kl, const lapack_int* ku,
-	const double* cfrom, const double* cto,
-	const lapack_int* m, const lapack_int* n,
-	double* A, const lapack_int* lda, lapack_int* info);
-
-
-
-void slascl2(
+void slascl2_(
 	const lapack_int* m, const lapack_int* n,
 	const float* D, float* X, const lapack_int* ldx);
 
-void dlascl2(
+void dlascl2_(
 	const lapack_int* m, const lapack_int* n,
 	const double* D, double* X, const lapack_int* ldx);
-
-
-
-void sorcsd2by1(
-	const char* jobu1, const char* jobu2, const char* jobv1t,
-	const lapack_int* m, const lapack_int* p, const lapack_int* q,
-	float* X11, const lapack_int* ldx11,
-	float* X21, const lapack_int* ldx21,
-	float* theta,
-	float* U1, const lapack_int* ldu1,
-	float* U2, const lapack_int* ldu2,
-	float* V1t, const lapack_int* ldv1t,
-	float* work, const lapack_int* lwork, lapack_int* iwork, lapack_int* info);
-
-void dorcsd2by1(
-	const char* jobu1, const char* jobu2, const char* jobv1t,
-	const lapack_int* m, const lapack_int* p, const lapack_int* q,
-	double* X11, const lapack_int* ldx11,
-	double* X21, const lapack_int* ldx21,
-	double* theta,
-	double* U1, const lapack_int* ldu1,
-	double* U2, const lapack_int* ldu2,
-	double* V1t, const lapack_int* ldv1t,
-	double* work, const lapack_int* lwork, lapack_int* iwork, lapack_int* info);
 } // extern "C"
 
 
@@ -96,7 +48,7 @@ inline integer_t geqp3(
 	integer_t* pivot, float* tau, float* work, integer_t lwork)
 {
 	integer_t info = -1;
-	sgeqp3(&m, &n, A, &lda, pivot, tau, work, &lwork, &info);
+	sgeqp3_(&m, &n, A, &lda, pivot, tau, work, &lwork, &info);
 	return info;
 }
 
@@ -105,7 +57,7 @@ inline integer_t geqp3(
 	integer_t* pivot, double* tau, double* work, integer_t lwork)
 {
 	integer_t info = -1;
-	dgeqp3(&m, &n, A, &lda, pivot, tau, work, &lwork, &info);
+	dgeqp3_(&m, &n, A, &lda, pivot, tau, work, &lwork, &info);
 	return info;
 }
 
@@ -116,7 +68,7 @@ inline integer_t geqrf(
 	float* p_work, integer_t lwork)
 {
 	integer_t info = -1;
-	sgeqrf(&m, &n, A, &lda, p_tau, p_work, &lwork, &info);
+	sgeqrf_(&m, &n, A, &lda, p_tau, p_work, &lwork, &info);
 	return info;
 }
 
@@ -125,7 +77,7 @@ inline integer_t geqrf(
 	double* p_work, integer_t lwork)
 {
 	integer_t info = -1;
-	dgeqrf(&m, &n, A, &lda, p_tau, p_work, &lwork, &info);
+	dgeqrf_(&m, &n, A, &lda, p_tau, p_work, &lwork, &info);
 	return info;
 }
 
@@ -136,7 +88,7 @@ inline integer_t gerqf(
 	float* p_work, integer_t lwork)
 {
 	integer_t info = -1;
-	sgerqf(&m, &n, A, &lda, p_tau, p_work, &lwork, &info);
+	sgerqf_(&m, &n, A, &lda, p_tau, p_work, &lwork, &info);
 	return info;
 }
 
@@ -145,7 +97,7 @@ inline integer_t gerqf(
 	double* p_work, integer_t lwork)
 {
 	integer_t info = -1;
-	dgerqf(&m, &n, A, &lda, p_tau, p_work, &lwork, &info);
+	dgerqf_(&m, &n, A, &lda, p_tau, p_work, &lwork, &info);
 	return info;
 }
 
@@ -157,7 +109,7 @@ inline integer_t gesvd(
 	float* work, integer_t lwork)
 {
 	integer_t info = -1;
-	sgesvd(
+	sgesvd_(
 		&jobu, &jobvt, &m, &n, A, &lda, sigma, U, &ldu, Vt, &ldvt,
 		work, &lwork, &info);
 	return info;
@@ -169,7 +121,7 @@ inline integer_t gesvd(
 	double* work, integer_t lwork)
 {
 	integer_t info = -1;
-	dgesvd(
+	dgesvd_(
 		&jobu, &jobvt, &m, &n, A, &lda, sigma, U, &ldu, Vt, &ldvt,
 		work, &lwork, &info);
 	return info;
@@ -187,7 +139,7 @@ inline integer_t ggsvd3(
 {
 #ifdef HAS_GGSVD3
 	integer_t info = -1;
-	sggsvd3(
+	sggsvd3_(
 		&jobu, &jobv, &jobq, &m, &n, &p, p_k, p_l,
 		A, &lda, B, &ldb, alpha, beta, U, &ldu, V, &ldv, Q, &ldq,
 		work, &lwork, iwork, &info);
@@ -204,7 +156,7 @@ inline integer_t ggsvd3(
 		return -22;
 
 	integer_t info = -1;
-	sggsvd(
+	sggsvd_(
 		&jobu, &jobv, &jobq, &m, &n, &p, p_k, p_l,
 		A, &lda, B, &ldb, alpha, beta, U, &ldu, V, &ldv, Q, &ldq,
 		work, iwork, &info);
@@ -222,7 +174,7 @@ inline integer_t ggsvd3(
 {
 #ifdef HAS_GGSVD3
 	integer_t info = -1;
-	dggsvd3(
+	dggsvd3_(
 		&jobu, &jobv, &jobq, &m, &n, &p, p_k, p_l,
 		A, &lda, B, &ldb, alpha, beta, U, &ldu, V, &ldv, Q, &ldq,
 		work, &lwork, iwork, &info);
@@ -239,7 +191,7 @@ inline integer_t ggsvd3(
 		return -22;
 
 	integer_t info = -1;
-	dggsvd(
+	dggsvd_(
 		&jobu, &jobv, &jobq, &m, &n, &p, p_k, p_l,
 		A, &lda, B, &ldb, alpha, beta, U, &ldu, V, &ldv, Q, &ldq,
 		work, iwork, &info);
@@ -254,7 +206,7 @@ inline integer_t heevd(
 	float* work, integer_t lwork, integer_t* iwork, integer_t liwork)
 {
 	integer_t info = -1;
-	ssyevd(
+	ssyevd_(
 		&jobz, &uplo, &n, A, &lda, lambda, work, &lwork, iwork, &liwork, &info);
 	return info;
 }
@@ -264,7 +216,7 @@ inline integer_t heevd(
 	double* work, integer_t lwork, integer_t* iwork, integer_t liwork)
 {
 	integer_t info = -1;
-	dsyevd(
+	dsyevd_(
 		&jobz, &uplo, &n, A, &lda, lambda, work, &lwork, iwork, &liwork, &info);
 	return info;
 }
@@ -277,7 +229,7 @@ inline integer_t hegv(
 	float* work, integer_t lwork)
 {
 	integer_t info = -1;
-	ssygv(
+	ssygv_(
 		&itype, &jobz, &uplo, &n, A, &lda, B, &ldb, lambda,
 		work, &lwork, &info);
 	return info;
@@ -289,7 +241,7 @@ inline integer_t hegv(
 	double* work, integer_t lwork)
 {
 	integer_t info = -1;
-	dsygv(
+	dsygv_(
 		&itype, &jobz, &uplo, &n, A, &lda, B, &ldb, lambda,
 		work, &lwork, &info);
 	return info;
@@ -303,7 +255,7 @@ inline integer_t hegvd(
 	float* work, integer_t lwork, integer_t* iwork, integer_t liwork)
 {
 	integer_t info = -1;
-	ssygvd(
+	ssygvd_(
 		&itype, &jobz, &uplo, &n, A, &lda, B, &ldb, lambda,
 		work, &lwork, iwork, &liwork, &info);
 	return info;
@@ -315,7 +267,7 @@ inline integer_t hegvd(
 	double* work, integer_t lwork, integer_t* iwork, integer_t liwork)
 {
 	integer_t info = -1;
-	dsygvd(
+	dsygvd_(
 		&itype, &jobz, &uplo, &n, A, &lda, B, &ldb, lambda,
 		work, &lwork, iwork, &liwork, &info);
 	return info;
@@ -327,14 +279,14 @@ inline void lacpy(
 	char uplo, integer_t m, integer_t n,
 	const float* A, integer_t lda, float* B, integer_t ldb )
 {
-	slacpy( &uplo, &m, &n, A, &lda, B, &ldb );
+	slacpy_( &uplo, &m, &n, A, &lda, B, &ldb );
 }
 
 inline void lacpy(
 	char uplo, integer_t m, integer_t n,
 	const double* A, integer_t lda, double* B, integer_t ldb )
 {
-	dlacpy( &uplo, &m, &n, A, &lda, B, &ldb );
+	dlacpy_( &uplo, &m, &n, A, &lda, B, &ldb );
 }
 
 
@@ -344,7 +296,7 @@ inline float lange(
 	const float* A, integer_t lda, float* work=nullptr)
 {
 	assert( (std::toupper(norm) != 'I') || work );
-	return slange(&norm, &m, &n, A, &lda, work);
+	return slange_(&norm, &m, &n, A, &lda, work);
 }
 
 inline double lange(
@@ -352,7 +304,7 @@ inline double lange(
 	const double* A, integer_t lda, double* work=nullptr)
 {
 	assert( (std::toupper(norm) != 'I') || work );
-	return dlange(&norm, &m, &n, A, &lda, work);
+	return dlange_(&norm, &m, &n, A, &lda, work);
 }
 
 
@@ -370,7 +322,7 @@ inline float lanhe(
 	MKL_Set_Num_Threads_Local(num_threads);
 	return ret;
 #else
-	return slansy(&norm, &uplo, &n, A, &lda, work);
+	return slansy_(&norm, &uplo, &n, A, &lda, work);
 #endif
 }
 
@@ -387,7 +339,7 @@ inline double lanhe(
 	MKL_Set_Num_Threads_Local(num_threads);
 	return ret;
 #else
-	return dlansy(&norm, &uplo, &n, A, &lda, work);
+	return dlansy_(&norm, &uplo, &n, A, &lda, work);
 #endif
 }
 
@@ -398,7 +350,7 @@ inline void lapmt(
 	float* A, integer_t lda, integer_t* piv)
 {
 	integer_t iforward = forward;
-	slapmt( &iforward, &m, &n, A, &lda, piv );
+	slapmt_( &iforward, &m, &n, A, &lda, piv );
 }
 
 inline void lapmt(
@@ -406,7 +358,7 @@ inline void lapmt(
 	double* A, integer_t lda, integer_t* piv)
 {
 	integer_t iforward = forward;
-	dlapmt( &iforward, &m, &n, A, &lda, piv );
+	dlapmt_( &iforward, &m, &n, A, &lda, piv );
 }
 
 
@@ -416,7 +368,7 @@ inline integer_t lascl(
 	integer_t m, integer_t n, float* A, integer_t lda)
 {
 	integer_t info = -1;
-	slascl(&type, &kl, &ku, &cfrom, &cto, &m, &n, A, &lda, &info);
+	slascl_(&type, &kl, &ku, &cfrom, &cto, &m, &n, A, &lda, &info);
 	return info;
 }
 
@@ -425,7 +377,7 @@ inline integer_t lascl(
 	integer_t m, integer_t n, double* A, integer_t lda)
 {
 	integer_t info = -1;
-	dlascl(&type, &kl, &ku, &cfrom, &cto, &m, &n, A, &lda, &info);
+	dlascl_(&type, &kl, &ku, &cfrom, &cto, &m, &n, A, &lda, &info);
 	return info;
 }
 
@@ -434,13 +386,13 @@ inline integer_t lascl(
 inline void lascl2(
 	integer_t m, integer_t n, const float* D, float* X, integer_t ldx)
 {
-	slascl2(&m, &n, D, X, &ldx);
+	slascl2_(&m, &n, D, X, &ldx);
 }
 
 inline void lascl2(
 	integer_t m, integer_t n, const double* D, double* X, integer_t ldx)
 {
-	dlascl2(&m, &n, D, X, &ldx);
+	dlascl2_(&m, &n, D, X, &ldx);
 }
 
 
@@ -449,14 +401,14 @@ inline void laset(
 	char uplo, integer_t m, integer_t n,
 	float alpha, float beta, float* A, integer_t lda )
 {
-	slaset( &uplo, &m, &n, &alpha, &beta, A, &lda );
+	slaset_( &uplo, &m, &n, &alpha, &beta, A, &lda );
 }
 
 inline void laset(
 	char uplo, integer_t m, integer_t n,
 	double alpha, double beta, double* A, integer_t lda )
 {
-	dlaset( &uplo, &m, &n, &alpha, &beta, A, &lda );
+	dlaset_( &uplo, &m, &n, &alpha, &beta, A, &lda );
 }
 
 
@@ -467,7 +419,7 @@ inline integer_t pstrf(
 	float* p_work)
 {
 	integer_t info = -1;
-	spstrf( &uplo, &n, A, &lda, p_piv, p_rank, &tol, p_work, &info );
+	spstrf_( &uplo, &n, A, &lda, p_piv, p_rank, &tol, p_work, &info );
 	return info;
 }
 
@@ -477,7 +429,7 @@ inline integer_t pstrf(
 	double* p_work)
 {
 	integer_t info = -1;
-	dpstrf( &uplo, &n, A, &lda, p_piv, p_rank, &tol, p_work, &info );
+	dpstrf_( &uplo, &n, A, &lda, p_piv, p_rank, &tol, p_work, &info );
 	return info;
 }
 
@@ -488,7 +440,7 @@ inline integer_t trcon(
 	integer_t lda, float* p_rcond, float* p_work, integer_t* p_iwork)
 {
 	integer_t info = -1;
-	strcon(
+	strcon_(
 		&norm, &uplo, &diag, &n, A, &lda, p_rcond, p_work, p_iwork, &info );
 	return info;
 }
@@ -498,7 +450,7 @@ inline integer_t trcon(
 	integer_t lda, double* p_rcond, double* p_work, integer_t* p_iwork)
 {
 	integer_t info = -1;
-	dtrcon(
+	dtrcon_(
 		&norm, &uplo, &diag, &n, A, &lda, p_rcond, p_work, p_iwork, &info );
 	return info;
 }
@@ -517,7 +469,7 @@ inline integer_t uncsd2by1(
 	float* work, integer_t lwork, integer_t* iwork)
 {
 	integer_t info = -1;
-	sorcsd2by1(
+	sorcsd2by1_(
 		&jobu1, &jobu2, &jobv1t,
 		&m, &p, &q,
 		X11, &ldx11, X21, &ldx21, theta,
@@ -538,7 +490,7 @@ inline integer_t uncsd2by1(
 	double* work, integer_t lwork, integer_t* iwork)
 {
 	integer_t info = -1;
-	dorcsd2by1(
+	dorcsd2by1_(
 		&jobu1, &jobu2, &jobv1t,
 		&m, &p, &q,
 		X11, &ldx11, X21, &ldx21, theta,
@@ -555,7 +507,7 @@ inline integer_t ungqr(
 	float* p_work, integer_t lwork)
 {
 	integer_t info = -1;
-	sorgqr(&m, &n, &k, A, &lda, p_tau, p_work, &lwork, &info);
+	sorgqr_(&m, &n, &k, A, &lda, p_tau, p_work, &lwork, &info);
 	return info;
 }
 
@@ -565,7 +517,7 @@ inline integer_t ungqr(
 	double* p_work, integer_t lwork)
 {
 	integer_t info = -1;
-	dorgqr(&m, &n, &k, A, &lda, p_tau, p_work, &lwork, &info);
+	dorgqr_(&m, &n, &k, A, &lda, p_tau, p_work, &lwork, &info);
 	return info;
 }
 
@@ -577,7 +529,7 @@ inline integer_t ungrq(
 	float* work, integer_t lwork)
 {
 	integer_t info = -1;
-	sorgrq(&m, &n, &k, A, &lda, tau, work, &lwork, &info);
+	sorgrq_(&m, &n, &k, A, &lda, tau, work, &lwork, &info);
 	return info;
 }
 
@@ -587,7 +539,7 @@ inline integer_t ungrq(
 	double* work, integer_t lwork)
 {
 	integer_t info = -1;
-	dorgrq(&m, &n, &k, A, &lda, tau, work, &lwork, &info);
+	dorgrq_(&m, &n, &k, A, &lda, tau, work, &lwork, &info);
 	return info;
 }
 
