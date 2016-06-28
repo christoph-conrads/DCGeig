@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-# Copyright 2016 Christoph Conrads
-#
-# This file is part of DCGeig and it is subject to the terms of the DCGeig
-# license. See http://DCGeig.tech/license for a copy of this license.
-
 import unittest
 
 import dcgeig.multilevel_tools as tools
@@ -18,39 +13,6 @@ import numpy.matlib as ML
 import scipy.sparse as SS
 import scipy.linalg as SL
 import scipy.sparse.linalg as LA
-
-
-
-class Test_get_submatrices(unittest.TestCase):
-    def test_simple(self):
-        n1 = 2
-        n2 = 3
-        n3 = 4
-        n = n1 + n2 + n3
-
-        dim_tree = Tree.make_internal_node( \
-            Tree.make_leaf_node({'n': n1}),
-            Tree.make_leaf_node({'n': n2}),
-            {'n': n})
-
-        A11 = n1 * NP.ones([n1,n1])
-        A12 = NP.zeros([n1,n2])
-        A22 = n2 * NP.ones([n2,n2])
-        A33 = n3 * NP.ones([n3,n3])
-
-        A13 = -5 * NP.ones([n1,n3])
-        A23 = -7 * NP.ones([n2,n3])
-
-        A = SS.bmat([
-            [A11, A12, A13],
-            [A12.T, A22, A23],
-            [A13.T, A23.T, A33]], format='csc')
-
-        B11, B22, B33 = tools.get_submatrices(A, dim_tree)
-
-        self.assertTrue( NP.all(A11 == B11) )
-        self.assertTrue( NP.all(A22 == B22) )
-        self.assertTrue( NP.all(A33 == B33) )
 
 
 

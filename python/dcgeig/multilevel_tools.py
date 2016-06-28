@@ -34,31 +34,11 @@ def get_default_options():
     default.c_s = 10
     default.n_s_min = 32
     default.max_num_iterations = 10
+    default.w = 0
 
     return default
 
 
-
-def get_submatrices(A, ptree):
-    assert SS.isspmatrix_csc(A)
-
-    assert isinstance(ptree, Tree)
-    assert ptree.left_child
-    assert ptree.right_child
-    assert ptree.n == A.shape[0]
-
-    n1 = ptree.left_child.n
-    n2 = ptree.right_child.n
-    n3 = ptree.n - n1 - n2
-    assert n3 >= 0
-
-    # avoid using n3 in range because it may be zero, e.g.,
-    # do not use A33 = A[:,-n3:][-n3:,:]
-    A11 = A[:,:n1][:n1,:]
-    A22 = A[:,n1:n1+n2][n1:n1+n2,:]
-    A33 = A[:,n1+n2:][n1+n2:,:]
-
-    return A11, A22, A33
 
 
 
@@ -203,8 +183,8 @@ def get_stats_header():
         '{:>8s} {:>7s} {:>8s}  '
         '{:>8s} {:>7s} {:>8s}  '
         '{:>8s} {:>7s} {:>8s} '
-        '{:>2s} {:>6s} {:>7s} {:>7s} {:>8s}  '
-        '{:>4s} {:>4s}\n')
+        '{:>2s} {:>5s} {:>6s} {:>6s} {:>6s}  '
+        '{:>4s} {:>4s} {:>4s}\n')
 
     header = fmt.format( \
         'id', 'lvl',
@@ -213,7 +193,7 @@ def get_stats_header():
         'min:be', 'max:be', 'median:be',
         'min:fe', 'max:fe', 'median:fe',
         'iter', 't-sle', 't-rr', 't-wc', 't-cpu',
-        'mems', 'memd')
+        'mems', 'memd', 'mlu')
 
     return header
 
@@ -223,8 +203,8 @@ def make_stats_tree( \
         options, K, M, level, ptree,
         d, X, eta, delta,
         wallclock_time_start, cpu_time_start,
-        wallclock_time_rr=None, wallclock_time_sle=None,
-        num_iterations=0,
+        wallclock_time_rr = None, wallclock_time_sle = None,
+        num_iterations=0, LU=None,
         stats1=None, stats2=None,
         **kwargs):
     wallclock_time = time.time() - wallclock_time_start
@@ -234,26 +214,19 @@ def make_stats_tree( \
         return
 
 
-    # estimate memory consumption
-    def get_memory_schur_decomposition(ptree):
-        if Tree.is_leaf_node(ptree):
-            return ptree.cholesky_factor[0].nbytes
-
-        n1 = ptree.left_child.n
-        n2 = ptree.right_child.n
-        n3 = ptree.n - n1 - n2
-        if n3 > 0:
-            return ptree.schur_complement[0].nbytes
-
-        return 0
-
+    # get memory consumption
+    def get_nnz_LU(LU):
+        if not LU:
+            return 0
+        if NP.all(LU.perm_c == LU.perm_r):
+            return LU.nnz/2
+        return LU.nnz
 
     dtype = d.dtype
     b = dtype.itemsize
     dynamic_memory_B = d.nbytes + X.nbytes + eta.nbytes + delta.nbytes
-    # factor 3 for CSC, CSR matrix
-    static_memory_B = \
-        3*b * K.nnz + 3*b * M.nnz + get_memory_schur_decomposition(ptree)
+    static_memory_B = 3*b * K.nnz + 3*b * M.nnz # factor 3 for CSC, CSR matrix
+    memory_LU_B = 3*b * get_nnz_LU(LU)
 
 
     # output
@@ -263,8 +236,8 @@ def make_stats_tree( \
         '%8.2e %8.2e %8.2e  ' # eigenvalue statistics
         '%8.2e %8.2e %8.2e  ' # backward error statistics
         '%8.2e %8.2e %8.2e  ' # relative forward error statistics
-        '%2d %7.1f %7.1f %7.1f %8.1f  ' # num_iterations, timing information
-        '%4.0f %4.0f\n') # memory(static) memory(dynamic) in MB
+        '%2d %6.1f %6.1f %6.1f %6.1f  ' # num_iterations, timing information
+        '%4.0f %4.0f %4.0f\n') # memory(static) memory(dynamic) in MB
 
     n = K.shape[0]
     s = options.s
@@ -281,6 +254,7 @@ def make_stats_tree( \
 
     dynamic_memory_MB = dynamic_memory_B / 1000.0**2
     static_memory_MB = static_memory_B / 1000.0**2
+    memory_LU_MB = memory_LU_B / 1000.0**2
 
     line = line_fmt % (
         ptree.id, level,
@@ -289,6 +263,6 @@ def make_stats_tree( \
         NP.min(eta[t]), NP.max(eta[t]), NP.median(eta[t]),
         NP.min(rfe[t]), NP.max(rfe[t]), NP.median(rfe[t]),
         num_iterations, wc_time_sle, wc_time_rr, wallclock_time, cpu_time,
-        static_memory_MB, dynamic_memory_MB)
+        static_memory_MB, dynamic_memory_MB, memory_LU_MB)
 
     options.show_stats(line)

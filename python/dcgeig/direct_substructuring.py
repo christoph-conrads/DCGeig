@@ -6,7 +6,6 @@
 # This file is part of DCGeig and it is subject to the terms of the DCGeig
 # license. See http://DCGeig.tech/license for a copy of this license.
 
-import dcgeig.multilevel_tools as tools
 from dcgeig.sparse_tools import Tree
 
 import numpy as NP
@@ -57,8 +56,8 @@ def solve_SLE_impl(tree, A, B):
     n2 = right.n
     n3 = n - n1 - n2
 
-    A11, A22, A33 = tools.get_submatrices(A, tree)
-    del A33
+    A11 = A[:,:n1][:n1,:]
+    A22 = A[:,n1:n1+n2][n1:n1+n2,:]
 
     X = NP.empty_like(B)
     X[:n1,:] = solve_SLE(left, A11, B[:n1,:])
@@ -120,8 +119,8 @@ def solve_SLE_overwrite(tree, A, B):
     n2 = right.n
     n3 = n - n1 - n2
 
-    A11, A22, A33 = tools.get_submatrices(A, tree)
-    del A33
+    A11 = A[:,:n1][:n1,:]
+    A22 = A[:,n1:n1+n2][n1:n1+n2,:]
 
     solve_SLE_overwrite(left, A11, B[:n1,:])
     solve_SLE_overwrite(right, A22, B[n1:n1+n2,:])
@@ -173,7 +172,8 @@ def setup(tree, A):
     n2 = right.n
     n3 = n - n1 - n2
 
-    A11, A22, A33 = tools.get_submatrices(A, tree)
+    A11 = A[:,:n1][:n1,:]
+    A22 = A[:,n1:n1+n2][n1:n1+n2,:]
 
     new_left = setup(left, A11)
     new_right = setup(right, A22)
@@ -196,6 +196,7 @@ def setup(tree, A):
     T[:n1,:] = solve_SLE(new_left, A11, A13)
     T[n1:,:] = solve_SLE(new_right,A22, A23)
 
+    A33 = A[:,-n3:][-n3:,:]
     S = A33 - A[:,:-n3][-n3:,:] * T
     C = SL.cho_factor(S, lower=True, check_finite=False)
 

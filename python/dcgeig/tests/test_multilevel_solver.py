@@ -8,12 +8,31 @@
 
 import unittest
 
+import dcgeig.error_analysis as EA
 import dcgeig.multilevel_solver as MS
 import dcgeig.multilevel_tools as multilevel_tools
+import dcgeig.sparse_tools as sparse_tools
 from dcgeig.sparse_tools import Tree
 
 import numpy as NP
 import scipy.sparse as SS
+
+
+
+class Test_get_submatrices(unittest.TestCase):
+    def test_simple(self):
+        n = 5
+        ds = NP.arange(n, dtype=NP.complex64)
+        A = SS.spdiags(ds, 0, n, n, format='lil')
+
+        A11, A22 = MS.get_submatrices(A, 3, 2)
+
+        self.assertEqual( A11.shape[0], 3 )
+        self.assertEqual( A22.shape[0], 2 )
+
+        B = SS.block_diag( [A11, A22] )
+
+        self.assertEqual( (A-B).nnz, 0 )
 
 
 
@@ -88,10 +107,15 @@ class Test_execute(unittest.TestCase):
 
         options = multilevel_tools.get_default_options()
         options.lambda_c = 1e-8
-        options.K = K
-        options.M = M
 
-        d, eta, _ = MS.execute(options)
+        ptree, perm = MS.get_ordering(options, K, M)
+
+        K = K[:,perm][perm,:]
+        M = M[:,perm][perm,:]
+
+        d, X, _ = MS.execute(options, K, M, ptree)
+
+        eta = EA.compute_backward_error(K, M, d, X)
 
         self.assertTrue( NP.all(eta < 2*NP.finfo(dtype).eps) )
 

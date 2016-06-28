@@ -234,8 +234,7 @@ epsilon and if the relative forward error is less than one. An eigenpair
   Like t-wc but with CPU time instead of wall-clock time.
 - mems
   Estimated "static" memory consumption by
-  - mass and stiffness matrix,
-  - Schur complement.
+  - mass and stiffness matrix.
 - memd
   "Dynamic" memory consumption, i.e., the memory required by
   - eigenvalues,
@@ -243,6 +242,8 @@ epsilon and if the relative forward error is less than one. An eigenpair
   - backward error values,
   - forward error values
   in the current subproblem.
+- mlu
+  Memory consumption by SuperLU's stiffness matrix factorization.
 
 The sum of memd and mems is not the overall memory consumption of the program
 because:

@@ -6,7 +6,6 @@
 # This file is part of DCGeig and it is subject to the terms of the DCGeig
 # license. See http://DCGeig.tech/license for a copy of this license.
 
-import dcgeig.direct_substructuring as DS
 import dcgeig.utils as utils
 import dcgeig.multilevel_tools as tools
 import dcgeig.sparse_tools as sparse_tools
@@ -16,9 +15,26 @@ import numpy as NP
 import numpy.matlib as ML
 
 import scipy.linalg
-import scipy.sparse as SS
+import scipy.sparse.linalg as LA
 
 import time
+
+
+
+def get_submatrices(A, n1, n2):
+    assert utils.is_hermitian(A)
+    assert isinstance(n1, int)
+    assert isinstance(n2, int)
+
+    # submatrices are never empty
+    assert n1 > 0
+    assert n2 > 0
+    assert A.shape[0] == n1 + n2
+
+    A11 = A[:,:n1][:n1,:]
+    A22 = A[:,n1:][n1:,:]
+
+    return A11, A22
 
 
 
@@ -58,13 +74,9 @@ def impl(options, K, M, level, ptree):
     right_child = ptree.right_child
     n1 = left_child.n
     n2 = right_child.n
-    n3 = n - n1 - n2
 
-    K11, K22, K33 = tools.get_submatrices(K, ptree)
-    M11, M22, M33 = tools.get_submatrices(M, ptree)
-
-    assert K[:,:n1][n1:n1+n2,:].nnz == 0
-    assert M[:,:n1][n1:n1+n2,:].nnz == 0
+    K11, K22 = get_submatrices(K, n1, n2)
+    M11, M22 = get_submatrices(M, n1, n2)
 
 
     # Conquer
@@ -78,26 +90,18 @@ def impl(options, K, M, level, ptree):
     wallclock_time_start = time.time()
     cpu_time_start = time.clock()
 
-    if n3 > 0:
-        d3, X3, _, _ = tools.rayleigh_ritz(K33, M33)
-    else:
-        d3 = NP.full([n3], 1, dtype=K.dtype)
-        X3 = NP.full([n3,n3], 1, dtype=K.dtype)
-
-    d = NP.concatenate([d1, d2, d3])
-    X = ML.matrix( scipy.linalg.block_diag(X1, X2, X3) )
+    d = NP.concatenate([d1, d2])
+    X = ML.matrix( scipy.linalg.block_diag(X1, X2) )
 
     # manually free memory
-    K11 = None; K22 = None; K33 = None
-    M11 = None; M22 = None; M33 = None
-    d1 = None; d2 = None; d3 = None
-    X1 = None; X2 = None; X3 = None
+    d1 = None; d2 = None
+    X1 = None; X2 = None
 
     ii = NP.argsort(d)
     d = d[ii]
     X = X[:,ii]
     eta, delta = tools.compute_errors(K, M, d, X)
-    ii = None
+    del ii
 
 
     if do_terminate(d, X, eta, delta):
@@ -116,6 +120,8 @@ def impl(options, K, M, level, ptree):
         return d, X, tools.make_stats_tree(**locals())
 
 
+    LU = LA.splu(K)
+
     wallclock_time_sle = 0
     wallclock_time_rr = 0
 
@@ -123,7 +129,7 @@ def impl(options, K, M, level, ptree):
         wallclock_time_sle_start = time.time()
         t = eta > NP.finfo(K.dtype).eps
         tau = max(d)
-        X[:,t] = DS.solve_SLE(ptree, K, (K - tau*M) * X[:,t])
+        X[:,t] = LU.solve((K - tau*M) * X[:,t])
         wallclock_time_sle += time.time() - wallclock_time_sle_start
 
         wallclock_time_rr_start = time.time()
@@ -143,29 +149,17 @@ def impl(options, K, M, level, ptree):
 
 
 
-def execute(options):
-    K = options.K
-    M = options.M
+def get_ordering(options, K, M):
+    G = sparse_tools.matrix_pencil_to_graph(K, M, options.w)
+    dim_tree, perm = sparse_tools.multilevel_bisection(G,options.n_direct)
 
-    assert utils.is_hermitian(K)
-    assert utils.is_hermitian(M)
+    ptree = sparse_tools.add_postorder_id(dim_tree)
 
-    # manual memory management
-    options.K = None; options.M = None
+    return ptree, perm
 
-    G = abs(K) + abs(M)
-    ptree, perm = sparse_tools.multilevel_nested_dissection(G, options.n_direct)
-    G = None
 
-    K = K[:,perm][perm,:]
-    M = M[:,perm][perm,:]
 
-    ptree = sparse_tools.add_postorder_id(ptree)
-    ptree = DS.setup(ptree, K)
-
+def execute(options, K, M, ptree):
     level = 0
-    d, X, _ = impl(options, K, M, level, ptree)
 
-    eta, delta = tools.compute_errors(K, M, d, X)
-
-    return d, eta, delta
+    return impl(options, K, M, level, ptree)

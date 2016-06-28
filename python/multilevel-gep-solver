@@ -230,12 +230,13 @@ def print_input_information(options, K, M):
 
 
 def print_output_information( \
-        options, n, s, d_s, eta, delta, wallclock_time, cpu_time):
-    d = s * d_s
+        options, ptree, d, X, eta, kappa, wallclock_time, cpu_time):
+    n = X.shape[0]
     lambda_c = options.lambda_c
     t = d <= lambda_c
     n_c = NP.sum(t)
-    rfe = delta / abs(d_s)
+    delta = eta * kappa
+    rfe = delta / abs(d)
 
 
     if options.be_quiet:
@@ -254,8 +255,21 @@ def print_output_information( \
         return
 
 
-    solver_info_fmt = 'Solver completed in {:.1f} seconds ({:.1f}s CPU time).'
-    print solver_info_fmt.format(wallclock_time, cpu_time)
+    def get_number_of_nodes(node):
+        if not node:
+            return 0
+
+        return 1 + \
+            get_number_of_nodes(node.left_child) + \
+            get_number_of_nodes(node.right_child)
+
+    num_nodes = get_number_of_nodes(ptree)
+    num_levels = Tree.get_height(ptree) + 1
+
+    solver_info_fmt = ( \
+        '{:d} subproblems were solved on {:d} levels in {:.1f} seconds '
+        '({:.1f}s CPU time).')
+    print solver_info_fmt.format(num_nodes, num_levels, wallclock_time, cpu_time)
 
     if n_c == 0:
         fmt = ( \
@@ -341,7 +355,11 @@ def main():
     print_input_information(input_options, K, M)
 
 
-    # balance matrix pencil
+    # start solving
+    wallclock_time_start = time.time()
+    cpu_time_start = time.clock()
+
+    # balance pencil
     s, D = sparse_tools.balance_matrix_pencil(K, M)
     K = D*K*D
     M = D*(s*M)*D
@@ -349,18 +367,20 @@ def main():
     options.lambda_c = input_options.lambda_c / s
     options.s = s
 
-    options.K = SS.csc_matrix(K)
-    options.M = SS.csc_matrix(M)
+    K = SS.csc_matrix(K)
+    M = SS.csc_matrix(M)
 
-    # manual memory management
-    n = K.shape[0]
-    K = None; M = None
+    # partition matrix
+    ptree, perm = MS.get_ordering(options, K, M)
 
-    # start solving
-    wallclock_time_start = time.time()
-    cpu_time_start = time.clock()
+    K = K[:,perm][perm,:]
+    M = M[:,perm][perm,:]
 
-    d, eta, delta = MS.execute(options)
+    # recursion
+    d, X, _ = MS.execute(options, K, M, ptree)
+
+    eta = EA.compute_backward_error(K, M, d, X)
+    kappa = EA.compute_condition_number(K, M, d, X)
 
     wallclock_time_end = time.time()
     cpu_time_end = time.clock()
@@ -371,7 +391,7 @@ def main():
     cpu_time = cpu_time_end - cpu_time_start
 
     print_output_information( \
-        input_options, n, s, d, eta, delta,
+        input_options, ptree, s*d, D*X, eta, kappa,
         wallclock_time, cpu_time)
 
     # clean up
