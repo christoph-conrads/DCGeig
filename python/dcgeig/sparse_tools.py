@@ -116,6 +116,83 @@ def balance_matrix_pencil(K, M):
 
 
 
+def matrix_pencil_to_graph(K, M, w):
+    # check K
+    if not SS.isspmatrix(K):
+        raise ValueError('K must be a sparse matrix')
+    if not utils.is_hermitian(K):
+        raise ValueError('K must be Hermitian')
+    # check M
+    if not SS.isspmatrix(M):
+        raise ValueError('M must be a sparse matrix')
+    if not utils.is_hermitian(M):
+        raise ValueError('M must be Hermitian')
+    # check (K, M)
+    if K.shape[0] != M.shape[0]:
+        raise ValueError('Matrices must have the same dimension')
+    # check w
+    if not isinstance(w, numbers.Real):
+        raise ValueError('w must be real')
+    if w < 0:
+        raise ValueError('w must be non-negative')
+
+    # compute |K|.^2
+    A = SS.csc_matrix(abs(K))
+    A.data = NP.square(A.data)
+
+    # compute |M|.^2
+    B = SS.csc_matrix(abs(M))
+    B.data = NP.square(B.data)
+
+    G = A + w**2 * B
+    G = SS.csc_matrix(G, dtype=NP.float32)
+
+    assert NP.all(G.data >= 0)
+
+    return G
+
+
+
+def multilevel_bisection(A, n_direct):
+    if not SS.isspmatrix_csc(A):
+        raise ValueError('A must be a CSC matrix')
+    if not utils.is_hermitian(A):
+        raise ValueError('A must be symmetric')
+    if (not type(n_direct) is int) or (n_direct <= 0):
+        raise ValueError('n_direct must be a positive integer')
+
+    n = A.shape[0]
+
+    if n <= n_direct:
+        tree = Tree.make_leaf_node({'n': n})
+        perm = NP.arange(n)
+        return tree, perm
+
+    t = metis.bisection(A)
+
+    A_1 = A[:,t]
+    A11 = A_1[t,:]
+    A_2 = A[:,~t]
+    A22 = A_2[~t,:]
+
+    left_child, perm11 = multilevel_bisection(A11, n_direct)
+    right_child, perm22 = multilevel_bisection(A22, n_direct)
+
+    assert NP.sum(t) == perm11.shape[0]
+    assert NP.sum(~t) == perm22.shape[0]
+    assert left_child.n + right_child.n == n
+
+    tree = Tree.make_internal_node(left_child, right_child, {'n': n})
+
+    p = NP.arange(n)
+    p1 = p[t]
+    p2 = p[~t]
+    perm = NP.concatenate( [p1[perm11], p2[perm22]] )
+
+    return tree, perm
+
+
+
 def multilevel_nested_dissection(A, n_direct):
     if not SS.isspmatrix(A):
         raise ValueError('A must be a sparse matrix')

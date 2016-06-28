@@ -76,6 +76,125 @@ class Test_balance_matrix_pencil(unittest.TestCase):
 
 
 
+class Test_matrix_pencil_to_graph(unittest.TestCase):
+    def check_return_value(self, G):
+        self.assertTrue( SS.isspmatrix(G) )
+        self.assertEqual( G.dtype, NP.float32 )
+        self.assertEqual( (G < 0).nnz, 0 )
+
+
+    def test_simple(self):
+        n = 2
+        K = SS.identity(n)
+        M = SS.identity(n)
+        w = 2
+
+        G = sparse_tools.matrix_pencil_to_graph(K, M, w)
+        self.check_return_value(G)
+
+
+
+    def test_complex(self):
+        n = 3
+
+        K = SS.identity(n, dtype=NP.complex, format='lil')
+        K[0,1] = -1.0j
+        K[1,0] = +1.0j
+
+        M = SS.identity(n, dtype=NP.complex, format='lil')
+        M[0,2] = 3.0 + 4.0j
+        M[2,0] = 3.0 - 4.0j
+
+        w = 2
+        G = sparse_tools.matrix_pencil_to_graph(K, M, w)
+
+        self.check_return_value(G)
+        self.assertEqual( G[0,1], 1 )
+        self.assertEqual( G[1,0], 1 )
+        self.assertEqual( G[0,2], 100 )
+        self.assertEqual( G[2,0], 100 )
+
+
+
+class Test_multilevel_bisection(unittest.TestCase):
+    def check_tree(self, n, tree):
+        self.assertEqual( tree.n, n )
+
+        if Tree.is_leaf_node(tree):
+            return
+
+        self.assertTrue( hasattr(tree, 'left_child') )
+        self.assertTrue( hasattr(tree, 'right_child') )
+
+        left = tree.left_child
+        right = tree.right_child
+
+        self.assertTrue( isinstance(left, Tree) )
+        self.assertTrue( isinstance(right, Tree) )
+
+        self.assertEqual( left.n + right.n, n )
+
+        self.check_tree(tree.left_child.n, tree.left_child)
+        self.check_tree(tree.right_child.n, tree.right_child)
+
+
+    def check_permutation(self, n, perm):
+        self.assertTrue( NP.all(NP.sort(perm) == NP.arange(n)) )
+
+
+    def check_return_values(self, n, tree, perm):
+        self.check_tree(n, tree)
+        self.check_permutation(n, perm)
+
+
+
+    def test_nop(self):
+        n = 4
+        A = SS.identity(n, dtype=NP.float32, format='csc')
+        tree, perm = sparse_tools.multilevel_bisection(A, n)
+
+        self.check_return_values(n, tree, perm)
+        self.assertEqual( Tree.get_height(tree), 0 )
+
+
+
+    def test_2by2(self):
+        n = 4
+        A = SS.identity(n, dtype=NP.float32, format='csc')
+        tree, perm = sparse_tools.multilevel_bisection(A, 1)
+
+        self.check_return_values(n, tree, perm)
+        self.assertEqual( Tree.get_height(tree), 2 )
+
+
+
+    def test_8by8(self):
+        n = 8
+        A = ML.matrix([
+            [  0, 100,  10,  10,   1,   1,   1,   1],
+            [100,   0,  10,  10,   1,   1,   1,   1],
+            [ 10,  10,   0, 100,   1,   1,   1,   1],
+            [ 10,  10, 100,   0,   1,   1,   1,   1],
+            [  1,   1,   1,   1,   0, 100,  10,  10],
+            [  1,   1,   1,   1, 100,   0,  10,  10],
+            [  1,   1,   1,   1,  10,  10,   0, 100],
+            [  1,   1,   1,   1,  10,  10, 100,   0]
+        ], dtype=NP.float32)
+
+        p = [0, 2, 4, 6, 7, 5, 3, 1]
+        B = SS.csc_matrix(A[p,:][:,p])
+        tree, perm = sparse_tools.multilevel_bisection(B, 2)
+
+        self.check_return_values(n, tree, perm)
+        self.assertTrue( Tree.get_height(tree), 3 )
+
+        C = B[:,perm][perm,:]
+        self.assertEqual( LA.norm(C[:,:4][4:,:], 'fro')**2, 16 )
+        self.assertEqual( LA.norm(C[:,:2][2:4,:], 'fro')**2, 400 )
+        self.assertEqual( LA.norm(C[:,6:][4:6,:], 'fro')**2, 400 )
+
+
+
 class Test_multilevel_nested_dissection(unittest.TestCase):
     def check_tree(self, n, tree):
         self.assertEqual( tree.n, n )
