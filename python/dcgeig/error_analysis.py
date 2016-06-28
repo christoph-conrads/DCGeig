@@ -39,71 +39,6 @@ def weighted_norm_average(k_F, m_F, d):
 
 
 
-def compute_backward_error_finite(K, M, d, X):
-    assert K.dtype == M.dtype
-    assert K.dtype == d.dtype
-    assert K.dtype == X.dtype
-    assert X.shape[1] == d.size
-
-    if not utils.is_hermitian(K) or not utils.is_hermitian(M):
-        raise ValueError('Matrices must be Hermitian')
-
-    if NP.any( NP.iscomplex(d) ):
-        raise ValueError('Eigenvalues must be real')
-
-    if NP.any(d == -1) or NP.any(NP.isinf(d)):
-        raise ValueError( \
-                'This function supports only regular finite eigenvalues')
-
-
-    nan = NP.nan
-    eps = NP.finfo(K.dtype).eps
-    n, m = X.shape
-
-    k_F = frobenius_norm(K)
-    m_F = frobenius_norm(M)
-
-    if k_F == 0 and m_F == 0:
-        return NP.zeros(m)
-
-
-    nx = norms(X)
-
-    # R = K*X - NP.multiply(M*X, d) (columns of X normalized)
-    R = M*X
-    T = NP.multiply(R, d)
-    T -= K*X
-    NP.multiply(T, 1/nx, out=R)
-
-    nr = norms(R)
-
-    # rx = columnwise_dot_product(X,R) / nx)
-    NP.conj(R, out=T)
-    NP.multiply(T, X, out=R)
-
-    rx = LA.norm(R, ord=1, axis=0) / nx
-
-    #numerator = \
-    #    NP.sqrt( \
-    #        abs( 2*norms(R)**2 - (columnwise_dot_product(X,R) / ns)**2))
-    numerator = NP.sqrt(abs(2*nr**2 - rx**2))
-    denumerator = weighted_norm_average(k_F, m_F, d)
-
-    eta = numerator / denumerator
-
-
-    assert eta.shape == (m,)
-    assert NP.isrealobj(eta)
-    assert not NP.any( NP.isnan(eta) )
-    assert NP.all( eta >= 0 )
-    assert NP.all( eta <= 1+2*eps )
-
-    eta[eta > 1] = 1
-
-    return eta
-
-
-
 def compute_backward_error(K, M, d, X):
     assert K.dtype == M.dtype
     assert K.dtype == d.dtype
@@ -129,9 +64,9 @@ def compute_backward_error(K, M, d, X):
 
 
     # normalize vectors
-    ns = norms(X)
-    KX = K*X / ns
-    MX = M*X / ns
+    X = X / norms(X)
+    KX = K*X
+    MX = M*X
 
     eta = NP.full(m, nan)
 
@@ -162,9 +97,7 @@ def compute_backward_error(K, M, d, X):
 
     numerator[v] = \
         NP.sqrt( \
-            abs( \
-                2*norms(R[:,v])**2 - \
-                (columnwise_dot_product(X[:,v],R[:,v]) / ns[v])**2))
+            abs(2*norms(R[:,v])**2 - columnwise_dot_product(X[:,v], R[:,v])**2))
 
     denumerator[t] = weighted_norm_average(k_F, m_F, d[t])
     denumerator[u] = m_F
@@ -206,14 +139,8 @@ def compute_condition_number(K, M, d, X):
     m_F = frobenius_norm(M)
 
     numerator = weighted_norm_average(k_F, m_F, d)
-
-    #denumerator = columnwise_dot_product(M*X, X)
-    nx = norms(X)
-    Y = X / nx
-    T = M*Y
-    NP.conj(T, out=Y)
-    NP.multiply(Y, X, out=T)
-    denumerator = LA.norm(T, ord=1, axis=0) / nx
+    X = X / norms(X)
+    denumerator = columnwise_dot_product(M*X, X)
 
     kappa = numerator / denumerator
     assert kappa.shape == d.shape

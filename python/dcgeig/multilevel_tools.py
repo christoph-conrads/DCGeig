@@ -204,7 +204,7 @@ def compute_schur_complement(A, tree):
 
 
 def compute_errors(K, M, d, X):
-    eta = EA.compute_backward_error_finite(K, M, d, X)
+    eta = EA.compute_backward_error(K, M, d, X)
     kappa = EA.compute_condition_number(K, M, d, X)
     delta = eta * kappa
 
