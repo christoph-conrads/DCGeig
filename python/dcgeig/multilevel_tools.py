@@ -203,6 +203,41 @@ def compute_schur_complement(A, tree):
 
 
 
+def bound_expected_backward_error(options, K, K21, M, M21):
+    assert K21.shape == M21.shape
+
+    lambda_c = options.lambda_c
+    assert NP.isrealobj(lambda_c)
+    assert lambda_c > 0
+
+    norm = lambda A: LA.norm(A, 'fro')
+    p = max(K21.shape)
+
+    k = norm(K)
+    k21 = norm(K21)
+    assert k21 <= k
+
+    m = norm(M)
+    m21 = norm(M21)
+    assert m21 <= m
+
+    bound = -1
+
+    if m21 == 0 or k21/m21 >= k/m:
+        bound = NP.sqrt(1.5 / p) * k21/k
+    else:
+        nominator = k21**2 + lambda_c**2 * m21**2
+        denominator = k**2 + lambda_c**2 * m**2
+        bound = NP.sqrt(1.5 / p) * NP.sqrt(nominator / denominator)
+
+    assert NP.isrealobj(bound)
+    assert bound >= 0
+    assert bound <= 1
+
+    return bound
+
+
+
 def compute_errors(K, M, d, X):
     eta = EA.compute_backward_error(K, M, d, X)
     kappa = EA.compute_condition_number(K, M, d, X)
