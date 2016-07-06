@@ -9,13 +9,16 @@
 import unittest
 
 import dcgeig.error_analysis as EA
+import dcgeig.utils as utils
 import dcgeig.multilevel_solver as MS
-import dcgeig.multilevel_tools as multilevel_tools
+import dcgeig.multilevel_tools as tools
 import dcgeig.sparse_tools as sparse_tools
 from dcgeig.sparse_tools import Tree
 
 import numpy as NP
 import scipy.sparse as SS
+
+import numbers
 
 
 
@@ -24,53 +27,126 @@ class Test_get_submatrices(unittest.TestCase):
         n = 5
         ds = NP.arange(n, dtype=NP.complex64)
         A = SS.spdiags(ds, 0, n, n, format='lil')
+        A[0,3] = 1+2j
+        A[0,4] = 1+2j
+        A[3,0] = 1-2j
+        A[4,0] = 1-2j
 
-        A11, A22 = MS.get_submatrices(A, 3, 2)
+        t = NP.array( [0, 1, 1, 0, 1], dtype=bool )
+        A11, A22, A12 = MS.get_submatrices(SS.csc_matrix(A), t)
 
         self.assertEqual( A11.shape[0], 3 )
         self.assertEqual( A22.shape[0], 2 )
 
-        B = SS.block_diag( [A11, A22] )
+        B = SS.bmat( [[A11, A12], [A12.H, A22]] )
 
-        self.assertEqual( (A-B).nnz, 0 )
+        u = [1, 2, 4, 0, 3]
+        C = A[:,u][u,:]
+        self.assertEqual( (C-B).nnz, 0 )
 
 
 
-class Test_impl(unittest.TestCase):
+class Test_get_subproblems(unittest.TestCase):
+    def test_simple(self):
+        K = SS.csc_matrix([
+            [1, 0, 0, 0, 0, 0],
+            [0, 2, 1, 0, 0, 0],
+            [0, 1, 3, 0, 0, 0],
+            [0, 0, 0, 4, 0, 0],
+            [0, 0, 0, 0, 5, 0],
+            [0, 0, 0, 0, 0, 6]
+        ], dtype=NP.complex64)
+        M = SS.csc_matrix([
+            [1, 0, 0, 0, 0, 0],
+            [0, 2, 0, 0, 0, 0],
+            [0, 0, 3, 0, 0, 0],
+            [0, 0, 0, 4, 0-1j, 0],
+            [0, 0, 0, 0+1j, 5, 0],
+            [0, 0, 0, 0, 0, 6]
+        ], dtype=NP.complex64)
+
+        l, labels = MS.get_subproblems(K, M)
+
+        self.assertEqual( l, 3 )
+        self.assertEqual( labels[0], labels[-1] )
+        self.assertEqual( labels[1], labels[2] )
+        self.assertEqual( labels[3], labels[4] )
+        self.assertEqual( labels.size, K.shape[0] )
+
+
+    def test_diagonal(self):
+        n = 3
+        A = SS.identity(n, dtype=NP.complex128)
+
+        l, labels = MS.get_subproblems(A, A)
+
+        self.assertEqual( l, 1 )
+        self.assertTrue( NP.all(labels == 0) )
+        self.assertEqual( labels.size, n )
+
+
+
+class Test_compute_expected_backward_error(unittest.TestCase):
+    def test_simple(self):
+        options = tools.Options()
+        lambda_c = 1
+        n = 5
+        p = 3
+        m = n-p
+
+        K = SS.identity(n, format='lil')
+        K21 = SS.csc_matrix( (m,p) )
+
+        M = SS.identity(n, format='dok')
+        M21 = SS.lil_matrix( (m,p) )
+
+        eta = MS.compute_expected_backward_error(options, lambda_c, K, K21, M, M21)
+
+        self.assertTrue( NP.isrealobj(eta) )
+        self.assertEqual( eta, 0 )
+
+
+
+    def test_cases(self):
+        options = tools.Options()
+        lambda_c = 10
+        n = 7
+        p = 4
+        m = n-p
+        assert p >= m
+
+        ds = NP.full(n, 1, dtype=NP.complex128)
+        A = SS.spdiags(ds, 0, n, n, format='lil')
+        A[n-1,0] = 0.0 + 1.0j
+        A[0,n-1] = 0.0 - 1.0j
+        A21 = A[:,:p][-m:,:]
+
+        B = SS.identity(n, dtype=NP.complex128, format='dok')
+        B21 = B[:,:p][-m:,:]
+
+        eta = MS.compute_expected_backward_error(options, lambda_c, A, A21, B, B21)
+
+        self.assertTrue( NP.isrealobj(eta) )
+        self.assertEqual( eta, NP.sqrt(1.5/p) * 1.0/3.0 )
+
+        eta = MS.compute_expected_backward_error(options, lambda_c, B, B21, A, A21)
+
+        self.assertTrue( NP.isrealobj(eta) )
+        self.assertTrue( eta > 0 )
+
+
+
+class Test_solve_gep(unittest.TestCase):
     def test_simple(self):
         n = 2
         K = SS.identity(n, format='csc')
         M = SS.identity(n, format='csc')
+        options = tools.get_default_options()
 
-        options = multilevel_tools.get_default_options()
-        options.lambda_c = 1
-        ptree = Tree.make_leaf_node({'n': n})
-
-        d, X, _ = MS.impl(options, K, M, 0, ptree)
+        d, X, _ = MS.solve_gep(options, K, M, lambda_c=1.0, tol=1e-6, level=0)
 
         self.assertEqual( d[0], 1 )
         self.assertEqual( d[1], 1 )
-
-
-
-    def test_4by4(self):
-        n = 4
-        K = SS.identity(n, format='csc')
-        M = SS.identity(n, format='csc')
-
-        options = multilevel_tools.get_default_options()
-        options.lambda_c = 1
-        options.n_direct = 2
-        ptree = \
-            Tree.make_internal_node( \
-                Tree.make_leaf_node({'n': 2}),
-                Tree.make_leaf_node({'n': 2}),
-                {'n': n}
-            )
-
-        d, X, _ = MS.impl(options, K, M, 0, ptree)
-
-        self.assertTrue( NP.all(d == 1) )
 
 
 
@@ -78,15 +154,34 @@ class Test_impl(unittest.TestCase):
         n = 2
         K = SS.identity(n, format='csc')
         M = SS.spdiags([0,1.0], 0, n, n, format='csc')
+        options = tools.get_default_options()
 
-        options = multilevel_tools.get_default_options()
-        options.lambda_c = 1
-        ptree = Tree.make_leaf_node({'n': n})
-
-        d, X, _ = MS.impl(options, K, M, 0, ptree)
+        d, X, _ = MS.solve_gep(options, K, M, lambda_c=1, tol=1e-6, level=0)
 
         self.assertEqual( d.size, 1 )
         self.assertEqual( d[0], 1 )
+
+
+    def test_multilevel(self):
+        n = 3
+        ds = 10 * (NP.arange(n, dtype=NP.float32) + 1)
+        K = SS.spdiags(ds, 0, n, n, format='lil')
+        K[0,1] = -1.0
+        K[1,0] = -1.0
+        K[1,2] = -1.0
+        K[2,1] = -1.0
+
+        M = SS.identity(n, dtype=NP.float32, format='csc')
+        
+        options = tools.get_default_options()
+        options.n_direct = 2
+        tol = 1e-6
+
+        d, X, _ = MS.solve_gep(options, K, M, lambda_c=1, tol=tol, level=0)
+        self.assertTrue( d.size > 0 )
+
+        eta = EA.compute_backward_error(K, M, d, X)
+        self.assertTrue( NP.all(eta < tol) )
 
 
 
@@ -105,16 +200,9 @@ class Test_execute(unittest.TestCase):
                     [ 1, 0, 0, 0,10, 1],
                     [ 1, 0, 0, 0, 1,10]], dtype=dtype))
 
-        options = multilevel_tools.get_default_options()
-        options.lambda_c = 1e-8
+        options = tools.get_default_options()
 
-        ptree, perm = MS.get_ordering(options, K, M)
-
-        K = K[:,perm][perm,:]
-        M = M[:,perm][perm,:]
-
-        d, X, _ = MS.execute(options, K, M, ptree)
-
+        d, X, stats = MS.execute(options, K, M, lambda_c=1e-8, tol=1e-6)
         eta = EA.compute_backward_error(K, M, d, X)
 
         self.assertTrue( NP.all(eta < 2*NP.finfo(dtype).eps) )

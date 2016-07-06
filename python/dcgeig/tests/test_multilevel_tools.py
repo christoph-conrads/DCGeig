@@ -16,72 +16,24 @@ import scipy.sparse.linalg as LA
 
 
 
-class Test_bound_expected_backward_error(unittest.TestCase):
-    def test_simple(self):
-        options = tools.Options()
-        options.lambda_c = 1
-        n = 5
-        p = 3
-        m = n-p
-
-        K = SS.identity(n, format='lil')
-        K21 = SS.csc_matrix( (m,p) )
-
-        M = SS.identity(n, format='dok')
-        M21 = SS.lil_matrix( (m,p) )
-
-        eta = tools.bound_expected_backward_error(options, K, K21, M, M21)
-
-        self.assertTrue( NP.isrealobj(eta) )
-        self.assertEqual( eta, 0 )
-
-
-
-    def test_cases(self):
-        options = tools.Options()
-        options.lambda_c = 10
-        n = 7
-        p = 4
-        m = n-p
-        assert p >= m
-
-        ds = NP.full(n, 1, dtype=NP.complex128)
-        A = SS.spdiags(ds, 0, n, n, format='lil')
-        A[n-1,0] = 0.0 + 1.0j
-        A[0,n-1] = 0.0 - 1.0j
-        A21 = A[:,:p][-m:,:]
-
-        B = SS.identity(n, dtype=NP.complex128, format='dok')
-        B21 = B[:,:p][-m:,:]
-
-        eta = tools.bound_expected_backward_error(options, A, A21, B, B21)
-
-        self.assertTrue( NP.isrealobj(eta) )
-        self.assertEqual( eta, NP.sqrt(1.5/p) * 1.0/3.0 )
-
-        eta = tools.bound_expected_backward_error(options, B, B21, A, A21)
-
-        self.assertTrue( NP.isrealobj(eta) )
-        self.assertTrue( eta > 0 )
-
-
-
 class Test_make_eigenpair_selector(unittest.TestCase):
-    class Options:
-        def __init__(self, lambda_c, c_s, n_s_min):
-            self.lambda_c = lambda_c
-            self.c_s = c_s
-            self.n_s_min = n_s_min
+    def make_options(self, c_s, n_s_min):
+        options = tools.get_default_options()
+        options.c_s = c_s
+        options.n_s_min = n_s_min
+
+        return options
 
 
 
     def test_simple(self):
-        options = self.Options(10, 2, 0)
+        options = self.make_options(2, 0)
+        lambda_c = 10
         m = 50
         d = NP.arange(m)
         delta = NP.zeros(m)
 
-        select = tools.make_eigenpair_selector(options, level=1)
+        select = tools.make_eigenpair_selector(options, lambda_c, level=1)
         t = select(d, delta)
 
         self.assertTrue( NP.any(t) )
@@ -90,12 +42,13 @@ class Test_make_eigenpair_selector(unittest.TestCase):
 
     def test_min_size(self):
         n_s_min = 8
-        options = self.Options(100, 1, n_s_min)
+        options = self.make_options(1, n_s_min)
+        lambda_c = 100
 
         d = NP.arange(101, 150)
         delta = NP.zeros(d.size)
 
-        select = tools.make_eigenpair_selector(options, level=1)
+        select = tools.make_eigenpair_selector(options, lambda_c, level=1)
         t = select(d, delta)
 
         self.assertTrue( NP.all(t[:n_s_min]) )
@@ -103,12 +56,13 @@ class Test_make_eigenpair_selector(unittest.TestCase):
 
     def test_select_only_finite_values(self):
         n_s_min = 10
-        options = self.Options(1, 1, n_s_min)
+        options = self.make_options(1, n_s_min)
+        lambda_c = 1.0
 
         d = NP.array([100, float('inf')])
         delta = NP.zeros(d.size)
 
-        select = tools.make_eigenpair_selector(options, level=1)
+        select = tools.make_eigenpair_selector(options, lambda_c, level=1)
         t = select(d, delta)
 
         self.assertTrue( t[0] )
@@ -117,14 +71,15 @@ class Test_make_eigenpair_selector(unittest.TestCase):
 
     def test_level_selection(self):
         n = 100
-        options = self.Options(1, 2, 32)
+        options = self.make_options(2, 32)
+        lambda_c = 1.0
         d = NP.arange(n, dtype=NP.float64)
         delta = NP.ones(d.size)
 
-        f = tools.make_eigenpair_selector(options, level=1)
+        f = tools.make_eigenpair_selector(options, lambda_c, level=1)
         t1 = f(d, delta)
 
-        g = tools.make_eigenpair_selector(options, level=100)
+        g = tools.make_eigenpair_selector(options, lambda_c, level=100)
         t100 = g(d, delta)
 
         self.assertTrue( NP.sum(t100) >= NP.sum(t1) )

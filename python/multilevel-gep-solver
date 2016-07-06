@@ -94,7 +94,7 @@ def make_argument_parser(default_options):
     parser.add_argument(
         '--tolerance',
         metavar='tol',
-        default=default_options.tol,
+        default=NP.finfo(NP.float32).eps,
         type=check_if_positive_real,
         help='maximum tolerance such that backward error <= tol')
 
@@ -138,7 +138,10 @@ def sanitize_matrix_pencil(K, M):
     if K.shape[0] != M.shape[0]:
         raise ValueError('Matrices must have the same dimension')
 
-    return K, M
+    A = SS.csc_matrix(K)
+    B = SS.csc_matrix(M)
+
+    return A, B
 
 
 
@@ -147,10 +150,10 @@ def sanitize_input(default_options, user_options):
     options = copy.copy(default_options)
 
     options.k_path = normalize_path( user_options['file'] )
-    options.lambda_c = user_options['cutoff']
+    lambda_c = user_options['cutoff']
 
     options.n_direct = user_options['max_dim_direct_solve']
-    options.tol = user_options['tolerance']
+    tol = user_options['tolerance']
 
     options.stats_path = \
         normalize_path(user_options['stats']) if user_options['stats'] else None
@@ -159,7 +162,7 @@ def sanitize_input(default_options, user_options):
 
 
     # tolerance
-    if options.tol >= 1:
+    if tol >= 1:
         raise ValueError('The tolerance must be between 0 and 1')
 
 
@@ -181,28 +184,22 @@ def sanitize_input(default_options, user_options):
         m_path = OP.join(k_dirname, m_basename)
 
         try:
-            M = IO.mmread(m_path)
+            M = IO.mmread(m_path).astype(K.dtype)
             options.m_path = m_path
         except IOError as e:
             if e.errno != 2:
                 raise
 
-
-    # open stat file
-    if options.stats_path:
-        line_buffering = 1
-        stats_file = open(options.stats_path, 'w', line_buffering)
-    else:
-        stats_file = None
+    assert K.dtype == M.dtype
 
 
     A, B = sanitize_matrix_pencil(K, M)
 
-    return A, B, stats_file, options
+    return options, A, B, lambda_c, tol
 
 
 
-def print_input_information(options, K, M):
+def print_input_information(options, K, M, lambda_c, tol):
     if options.be_quiet:
         return
 
@@ -221,8 +218,8 @@ def print_input_information(options, K, M):
         'Stiffness matrix', options.k_path,
         'Mass matrix', m_path if m_path else 'identity',
         'n', K.shape[0],
-        'lambda_c', options.lambda_c,
-        'tol', options.tol
+        'lambda_c', lambda_c,
+        'tol', tol
     )
 
     print text
@@ -230,9 +227,8 @@ def print_input_information(options, K, M):
 
 
 def print_output_information( \
-        options, ptree, d, X, eta, kappa, wallclock_time, cpu_time):
+        options, lambda_c, tol, d, X, eta, kappa, wallclock_time, cpu_time):
     n = X.shape[0]
-    lambda_c = options.lambda_c
     t = d <= lambda_c
     n_c = NP.sum(t)
     delta = eta * kappa
@@ -255,21 +251,8 @@ def print_output_information( \
         return
 
 
-    def get_number_of_nodes(node):
-        if not node:
-            return 0
-
-        return 1 + \
-            get_number_of_nodes(node.left_child) + \
-            get_number_of_nodes(node.right_child)
-
-    num_nodes = get_number_of_nodes(ptree)
-    num_levels = Tree.get_height(ptree) + 1
-
-    solver_info_fmt = ( \
-        '{:d} subproblems were solved on {:d} levels in {:.1f} seconds '
-        '({:.1f}s CPU time).')
-    print solver_info_fmt.format(num_nodes, num_levels, wallclock_time, cpu_time)
+    solver_info_fmt = 'Solved in {:.1f} seconds ({:.1f}s CPU time).'
+    print solver_info_fmt.format(wallclock_time, cpu_time)
 
     if n_c == 0:
         fmt = ( \
@@ -303,7 +286,7 @@ def print_output_information( \
 
 
 
-def get_stats_file_header(options):
+def get_stats_file_header(options, lambda_c, tol):
     fmt = ( \
         '# multilevel_gep_solve {:}\n'
         '# {:18s} {:s}\n'
@@ -319,14 +302,14 @@ def get_stats_file_header(options):
         dcgeig.__version__,
         'stiffness_matrix', options.k_path,
         'mass_matrix', options.m_path if options.m_path else 'identity',
-        'lambda_c', options.lambda_c,
+        'lambda_c', lambda_c,
         'n_direct', options.n_direct,
-        'tol', options.tol,
+        'tol', tol,
         'c_s', options.c_s,
         'n_s_min', options.n_s_min,
         'max_num_iterations', options.max_num_iterations)
 
-    return settings + '#' + multilevel_tools.get_stats_header()
+    return settings
 
 
 
@@ -336,49 +319,30 @@ def main():
     argument_parser = make_argument_parser(default_options)
     namespace = argument_parser.parse_args()
 
-    K, M, stats_file, input_options = \
+    options, A, B, lambda_c, tol = \
         sanitize_input(default_options, vars(namespace))
-    n = K.shape[0]
-
-    options = copy.copy(input_options)
-
-    # save stats?
-    if stats_file:
-        def show_stats(message):
-            assert isinstance(message, str)
-            stats_file.write(message)
-
-        show_stats( get_stats_file_header(options) )
-        options.show_stats = show_stats
+    n = A.shape[0]
 
 
-    print_input_information(input_options, K, M)
+    print_input_information(options, A, B, lambda_c, tol)
+
+
+    # normalize stiffness matrix norm for easier debugging and stats reading
+    I = SS.identity(n, format='csc', dtype=A.dtype)
+    s, _ = sparse_tools.balance_matrix_pencil(I / LA.norm(I), A)
+
+    K = s*A
+    M = s*B
+
+    del s
+    del I
 
 
     # start solving
     wallclock_time_start = time.time()
     cpu_time_start = time.clock()
 
-    # balance pencil
-    s, D = sparse_tools.balance_matrix_pencil(K, M)
-    K = D*K*D
-    M = D*(s*M)*D
-
-    options.lambda_c = input_options.lambda_c / s
-    options.s = s
-
-    K = SS.csc_matrix(K)
-    M = SS.csc_matrix(M)
-
-    # partition matrix
-    ptree, perm = MS.get_ordering(options, K, M)
-
-    K = K[:,perm][perm,:]
-    M = M[:,perm][perm,:]
-
-    # recursion
-    d, X, _ = MS.execute(options, K, M, ptree)
-
+    d, X, stats = MS.execute(options, K, M, lambda_c, tol)
     eta = EA.compute_backward_error(K, M, d, X)
     kappa = EA.compute_condition_number(K, M, d, X)
 
@@ -391,11 +355,17 @@ def main():
     cpu_time = cpu_time_end - cpu_time_start
 
     print_output_information( \
-        input_options, ptree, s*d, D*X, eta, kappa,
+        options, lambda_c, tol, d, X, eta, kappa,
         wallclock_time, cpu_time)
 
-    # clean up
-    if stats_file:
+
+    # print stats?
+    if options.stats_path:
+        use_line_buffering = 1
+        stats_file = open(options.stats_path, 'w', use_line_buffering)
+
+        stats_file.write( get_stats_file_header(options, lambda_c, tol) )
+
         stats_file.close()
 
 

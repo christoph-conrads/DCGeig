@@ -6,6 +6,7 @@
 # This file is part of DCGeig and it is subject to the terms of the DCGeig
 # license. See http://DCGeig.tech/license for a copy of this license.
 
+import dcgeig.metis as metis
 import dcgeig.utils as utils
 import dcgeig.multilevel_tools as tools
 import dcgeig.sparse_tools as sparse_tools
@@ -15,128 +16,208 @@ import numpy as NP
 import numpy.matlib as ML
 
 import scipy.linalg
+import scipy.sparse as SS
 import scipy.sparse.linalg as LA
+import scipy.sparse.csgraph as graph
+
+import numbers
 
 import time
 
 
 
-def get_submatrices(A, n1, n2):
+def get_submatrices(A, t):
     assert utils.is_hermitian(A)
-    assert isinstance(n1, int)
-    assert isinstance(n2, int)
+    assert NP.any(t)
+    assert NP.any(~t)
 
-    # submatrices are never empty
-    assert n1 > 0
-    assert n2 > 0
-    assert A.shape[0] == n1 + n2
+    A11 = A[:,t][t,:]
+    A12 = A[:,~t][t,:]
+    A22 = A[:,~t][~t,:]
 
-    A11 = A[:,:n1][:n1,:]
-    A22 = A[:,n1:][n1:,:]
-
-    return A11, A22
+    return A11, A22, A12
 
 
 
-def impl(options, K, M, level, ptree):
+# This function finds all connected components in the graph induced by |K|+|M|
+# and merges all nodes without edges into one component.
+def get_subproblems(K, M):
+    assert utils.is_hermitian(K)
+    assert utils.is_hermitian(M)
+
     n = K.shape[0]
+    assert n > 0
 
+
+    # construct induced graph with diagonal entries set to zero
+    # (no self-loops)
+    U = abs(SS.triu(K, 1)) + abs(SS.triu(M, 1))
+    G = U + U.T
+    assert NP.isrealobj(G)
+
+
+    # find disconnected nodes
+    t = LA.norm(G, ord=float('inf'), axis=0) == 0
+
+
+    if NP.all(t):
+        return 1, NP.full(n, 0, dtype=int)
+
+
+    # find connected components
+    H = G[:,~t][~t,:]
+    l_H, labels_H = graph.connected_components(H, directed=False)
+
+    assert max(labels_H) < l_H
+
+    # compute return values
+    if NP.any(t):
+        l = l_H + 1
+
+        labels = NP.full( n, NP.nan, dtype=labels_H.dtype )
+        labels[t] = l_H
+        labels[~t] = labels_H
+    else:
+        l = l_H
+        labels = labels_H
+
+    assert l >= 1
+    assert labels.size == n
+    assert NP.all( labels >= 0 )
+    assert NP.all( labels < l )
+
+    return l, labels
+
+
+
+def compute_expected_backward_error(options, lambda_c, K, K21, M, M21):
+    assert K21.shape == M21.shape
+    assert NP.isrealobj(lambda_c)
+    assert lambda_c > 0
+
+    norm = lambda A: LA.norm(A, 'fro')
+    p = max(K21.shape)
+
+    k = norm(K)
+    k21 = norm(K21)
+    assert k21 <= k
+
+    m = norm(M)
+    m21 = norm(M21)
+    assert m21 <= m
+
+    exp = -1
+
+    if m21 == 0 or k21/m21 >= k/m:
+        exp = NP.sqrt(1.5 / p) * k21/k
+    else:
+        nominator = k21**2 + lambda_c**2 * m21**2
+        denominator = k**2 + lambda_c**2 * m**2
+        exp = NP.sqrt(1.5 / p) * NP.sqrt(nominator / denominator)
+
+    assert NP.isrealobj(exp)
+    assert exp >= 0
+    assert exp <= 1
+
+    return exp
+
+
+
+def solve_gep(options, K, M, lambda_c, tol, level):
+    assert utils.is_hermitian(K)
+    assert utils.is_hermitian(M)
+    assert K.dtype == M.dtype
+    assert isinstance(lambda_c, numbers.Real)
+    assert lambda_c > 0
+    assert isinstance(tol, numbers.Real)
+    assert tol > 0
+    assert tol <= 1
     assert isinstance(level, int)
     assert level >= 0
-    assert ptree.n == n
 
-    select = tools.make_eigenpair_selector(options, level)
-    do_terminate = tools.make_termination_test(options, level)
+    n = K.shape[0]
+
+    assert n > 0
+
+
+    select = tools.make_eigenpair_selector(options, lambda_c, level)
 
 
     # solve directly?
     if n <= options.n_direct:
-        assert Tree.is_leaf_node(ptree)
-
-        wallclock_time_start = time.time()
-        cpu_time_start = time.clock()
-
         d, X, eta, delta = tools.rayleigh_ritz(K, M)
 
         t = select(d, delta)
         d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-        return d, X, tools.make_stats_tree(**locals())
+        return d, X, make_stats_tree(**locals())
 
 
-    # use divide-and-conquer
-    assert not Tree.is_leaf_node(ptree)
-    assert Tree.has_left_child(ptree)
-    assert Tree.has_right_child(ptree)
+    # divide
+    G = abs(K).astype(NP.float32)
+    t = metis.bisection(G)
+    del G
 
-    # Divide
-    left_child = ptree.left_child
-    right_child = ptree.right_child
-    n1 = left_child.n
-    n2 = right_child.n
-
-    K11, K22 = get_submatrices(K, n1, n2)
-    M11, M22 = get_submatrices(M, n1, n2)
+    K11, K22, K12 = get_submatrices(K, t)
+    M11, M22, M12 = get_submatrices(M, t)
 
 
-    # Conquer
-    d1, X1, stats1 = \
-        impl(options, K11, M11, level+1, left_child)
-    d2, X2, stats2 = \
-        impl(options, K22, M22, level+1, right_child)
+    # conquer
+    d1, X1, stats1 = solve_gep(options, K11, M11, lambda_c, tol, level+1)
+    d2, X2, stats2 = solve_gep(options, K22, M22, lambda_c, tol, level+1)
+
+    del K11; del K22
+    del M11; del M22
 
 
-    # Combine
-    wallclock_time_start = time.time()
-    cpu_time_start = time.clock()
-
+    # combine
     d = NP.concatenate([d1, d2])
-    X = ML.matrix( scipy.linalg.block_diag(X1, X2) )
+    X = ML.matrix( NP.full([n, d.size], 0, dtype=K.dtype) )
+    X[ t, :d1.size] = X1
+    X[~t, d1.size:] = X2
 
-    # manually free memory
-    d1 = None; d2 = None
-    X1 = None; X2 = None
+    del t
+    del d1; del d2
+    del X1; del X2
 
-    ii = NP.argsort(d)
-    d = d[ii]
-    X = X[:,ii]
+    # sort eigenpairs
+    perm = NP.argsort(d)
+    d = d[perm]
+    X = X[:,perm]
+    del perm
+
+
     eta, delta = tools.compute_errors(K, M, d, X)
-    del ii
+    do_stop = tools.make_termination_test(options, lambda_c, level, tol)
 
 
-    if do_terminate(d, X, eta, delta):
+    if do_stop(d, X, eta, delta):
         t = select(d, delta)
         d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-        return d, X, tools.make_stats_tree(**locals())
+        return d, X, make_stats_tree(**locals())
 
 
     if d.size == n:
-        d, X, eta, delta = tools.rayleigh_ritz(K, M)
+        if level == 0:
+            d, X, eta, delta = tools.rayleigh_ritz(K, M)
 
-        t = select(d, delta)
-        d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
+            t = select(d, delta)
+            d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-        return d, X, tools.make_stats_tree(**locals())
+        return d, X, make_stats_tree(**locals())
 
 
-    LU = LA.splu(K, diag_pivot_thresh=0)
+    LU = LA.splu( SS.csc_matrix(K), diag_pivot_thresh=0 )
 
-    wallclock_time_sle = 0
-    wallclock_time_rr = 0
-
-    for i in xrange(1, options.max_num_iterations+1):
-        wallclock_time_sle_start = time.time()
+    for i in range(1, options.max_num_iterations+1):
         t = eta > NP.finfo(K.dtype).eps
         tau = max(d)
-        X[:,t] = LU.solve((K - tau*M) * X[:,t])
-        wallclock_time_sle += time.time() - wallclock_time_sle_start
 
-        wallclock_time_rr_start = time.time()
+        X[:,t] = LU.solve( (K - tau*M) * X[:,t] )
         d, X, eta, delta = tools.rayleigh_ritz(K, M, X)
-        wallclock_time_rr += time.time() - wallclock_time_rr_start
 
-        if do_terminate(d, X, eta, delta):
+        if do_stop(d, X, eta, delta):
             break
 
     assert not NP.any(NP.isinf(d))
@@ -145,21 +226,99 @@ def impl(options, K, M, level, ptree):
     t = select(d, delta)
     d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-    return d, X, tools.make_stats_tree(num_iterations=i, **locals())
+    return d, X, make_stats_tree(**locals())
 
 
 
-def get_ordering(options, K, M):
-    G = sparse_tools.matrix_pencil_to_graph(K, M, options.w)
-    dim_tree, perm = sparse_tools.multilevel_bisection(G,options.n_direct)
+def execute(options, A, B, lambda_c, tol, level=0):
+    assert isinstance(options, tools.Options)
+    assert utils.is_hermitian(A)
+    assert utils.is_hermitian(B)
+    assert A.dtype == B.dtype
+    assert isinstance(lambda_c, numbers.Real)
+    assert lambda_c > 0
+    assert isinstance(tol, numbers.Real)
+    assert tol > 0
+    assert tol <= 1
+    assert isinstance(level, int)
+    assert level >= 0
 
-    ptree = sparse_tools.add_postorder_id(dim_tree)
+    t0 = time.time()
+    n = A.shape[0]
+    l, labels = get_subproblems(A, B)
 
-    return ptree, perm
+    def call_solve_gep(i):
+        t = labels == i
+        A_tt = A[:,t][t,:]
+        B_tt = B[:,t][t,:]
+
+        # balance matrix pencil
+        s, D = sparse_tools.balance_matrix_pencil(A_tt, B_tt)
+        K = SS.csc_matrix(D * A_tt * D)
+        M = SS.csc_matrix(s * D * B_tt * D)
+
+        d, X, stats = solve_gep(options, K, M, lambda_c/s, tol, level)
+
+        return s*d, D*X, stats
+
+    rs = map( call_solve_gep, range(l) )
+
+    d = NP.concatenate( map(lambda t: t[0], rs) )
+    xs = map(lambda t: t[1], rs)
+    stats = map(lambda t: t[2], rs)
+
+    del rs
+
+    if l == 1:
+        return d, xs[0], stats
+
+    # assemble matrix of eigenvectors X
+    X = NP.full( [n, d.size], 0, dtype=A.dtype )
+
+    j = 0
+    for i in range(l):
+        t = labels == i
+        m = xs[i].shape[1]
+        X[t,j:j+m] = xs[i]
+        j = j+m
+
+    return d, X, stats
 
 
 
-def execute(options, K, M, ptree):
-    level = 0
+def make_stats_tree( \
+        options, K, M, lambda_c, tol, level,
+        d, X, eta, delta,
+        K12=None, M12=None,
+        num_iterations=0, LU=None,
+        stats1=None, stats2=None,
+        **kwargs):
+    assert LU is None or NP.all(LU.perm_c == LU.perm_r)
 
-    return impl(options, K, M, level, ptree)
+    normK12 = NP.nan if K12 is None else LA.norm(K12)
+    normM12 = NP.nan if M12 is None else LA.norm(M12)
+
+    n = K.shape[0]
+    n_c = NP.sum(d <= lambda_c)
+    n_s = d.size
+    nnz_LU = NP.nan if LU is None else LU.nnz
+
+    rfe = delta / abs(d)
+
+    data = {
+            'n': n,
+            'level': level,
+            'nnz(K)': K.nnz,
+            'nnz(M)': M.nnz,
+            'norm(K12)': normK12,
+            'norm(M12)': normM12,
+            'nnz(L)': nnz_LU,
+            'n_c': n_c,
+            'n_s': n_s,
+            'eta': eta,
+            'rfe': rfe,
+            'num_iterations': num_iterations
+    }
+
+    node = Tree.make_internal_node(stats1, stats2, data)
+    return node
