@@ -38,6 +38,18 @@ void dlascl2_(
 
 namespace lapack
 {
+	namespace impl
+	{
+		template<typename T>
+		T* return_not_null(T* p)
+		{
+#ifdef USE_MKL
+			return p ? p : (T*)-1;
+#else
+			return p;
+#endif
+		}
+	}
 
 typedef lapack_int integer_t;
 
@@ -47,6 +59,10 @@ inline integer_t geqp3(
 	integer_t m, integer_t n, float* A, integer_t lda,
 	integer_t* pivot, float* tau, float* work, integer_t lwork)
 {
+	A = impl::return_not_null(A);
+	pivot = impl::return_not_null(pivot);
+	tau = impl::return_not_null(tau);
+
 	integer_t info = -1;
 	sgeqp3_(&m, &n, A, &lda, pivot, tau, work, &lwork, &info);
 	return info;
@@ -56,6 +72,10 @@ inline integer_t geqp3(
 	integer_t m, integer_t n, double* A, integer_t lda,
 	integer_t* pivot, double* tau, double* work, integer_t lwork)
 {
+	A = impl::return_not_null(A);
+	pivot = impl::return_not_null(pivot);
+	tau = impl::return_not_null(tau);
+
 	integer_t info = -1;
 	dgeqp3_(&m, &n, A, &lda, pivot, tau, work, &lwork, &info);
 	return info;
@@ -108,6 +128,10 @@ inline integer_t gesvd(
 	float* sigma, float* U, integer_t ldu, float* Vt, integer_t ldvt,
 	float* work, integer_t lwork)
 {
+	A = impl::return_not_null(A);
+	sigma = impl::return_not_null(sigma);
+	U = impl::return_not_null(U);
+
 	integer_t info = -1;
 	sgesvd_(
 		&jobu, &jobvt, &m, &n, A, &lda, sigma, U, &ldu, Vt, &ldvt,
@@ -120,6 +144,10 @@ inline integer_t gesvd(
 	double* sigma, double* U, integer_t ldu, double* Vt, integer_t ldvt,
 	double* work, integer_t lwork)
 {
+	A = impl::return_not_null(A);
+	sigma = impl::return_not_null(sigma);
+	U = impl::return_not_null(U);
+
 	integer_t info = -1;
 	dgesvd_(
 		&jobu, &jobvt, &m, &n, A, &lda, sigma, U, &ldu, Vt, &ldvt,
@@ -205,6 +233,9 @@ inline integer_t heevd(
 	char jobz, char uplo, integer_t n, float* A, integer_t lda, float* lambda,
 	float* work, integer_t lwork, integer_t* iwork, integer_t liwork)
 {
+	A = impl::return_not_null(A);
+	lambda = impl::return_not_null(lambda);
+
 	integer_t info = -1;
 	ssyevd_(
 		&jobz, &uplo, &n, A, &lda, lambda, work, &lwork, iwork, &liwork, &info);
@@ -215,6 +246,9 @@ inline integer_t heevd(
 	char jobz, char uplo, integer_t n, double* A, integer_t lda, double* lambda,
 	double* work, integer_t lwork, integer_t* iwork, integer_t liwork)
 {
+	A = impl::return_not_null(A);
+	lambda = impl::return_not_null(lambda);
+
 	integer_t info = -1;
 	dsyevd_(
 		&jobz, &uplo, &n, A, &lda, lambda, work, &lwork, iwork, &liwork, &info);
@@ -468,6 +502,14 @@ inline integer_t uncsd2by1(
 	float* V1t, integer_t ldv1t,
 	float* work, integer_t lwork, integer_t* iwork)
 {
+	X11 = impl::return_not_null(X11);
+	X21 = impl::return_not_null(X21);
+	theta = impl::return_not_null(theta);
+	U1 = impl::return_not_null(U1);
+	U2 = impl::return_not_null(U2);
+	V1t = impl::return_not_null(V1t);
+	iwork = impl::return_not_null(iwork);
+
 	integer_t info = -1;
 	sorcsd2by1_(
 		&jobu1, &jobu2, &jobv1t,
@@ -489,6 +531,14 @@ inline integer_t uncsd2by1(
 	double* V1t, integer_t ldv1t,
 	double* work, integer_t lwork, integer_t* iwork)
 {
+	X11 = impl::return_not_null(X11);
+	X21 = impl::return_not_null(X21);
+	theta = impl::return_not_null(theta);
+	U1 = impl::return_not_null(U1);
+	U2 = impl::return_not_null(U2);
+	V1t = impl::return_not_null(V1t);
+	iwork = impl::return_not_null(iwork);
+
 	integer_t info = -1;
 	dorcsd2by1_(
 		&jobu1, &jobu2, &jobv1t,
@@ -516,6 +566,9 @@ inline integer_t ungqr(
 	double* A, integer_t lda, const double* p_tau,
 	double* p_work, integer_t lwork)
 {
+	A = impl::return_not_null(A);
+	p_tau = impl::return_not_null(p_tau);
+
 	integer_t info = -1;
 	dorgqr_(&m, &n, &k, A, &lda, p_tau, p_work, &lwork, &info);
 	return info;
