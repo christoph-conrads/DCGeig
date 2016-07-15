@@ -78,7 +78,7 @@ def solve_SLE(tree, A, B):
         assert hasattr(tree, 'cholesky_factor')
 
         C = tree.cholesky_factor
-        X = SL.cho_solve(C, B)
+        X = SL.cho_solve(C, B, check_finite=False)
 
         assert X.dtype == B.dtype
         assert NP.all(X.shape == B.shape)
@@ -90,54 +90,42 @@ def solve_SLE(tree, A, B):
     left = tree.left_child
     right = tree.right_child
 
+    n = A.shape[0]
     n1 = left.n
     n2 = right.n
-    n3 = A.shape[0] - n1 - n2
+    n3 = n - n1 - n2
 
-    A11, A22, A33 = get_submatrices(A, tree); A33 = None
-    B1 = B[:n1,:]
-    B2 = B[n1:n1+n2,:]
+    A11, A22, A33 = get_submatrices(A, tree)
+    del A33
 
-    U1 = solve_SLE(left, A11, B1)
-    U2 = solve_SLE(right, A22, B2)
-    U = NP.vstack([U1, U2])
-
-    # manual memory management
-    B1 = None; B2 = None
+    X = NP.empty_like(B)
+    X[:n1,:] = solve_SLE(left, A11, B[:n1,:])
+    X[n1:n1+n2,:] = solve_SLE(right, A22, B[n1:n1+n2,:])
 
 
     # return in block diagonal case
     if n3 == 0:
-        assert U.dtype == B.dtype
-        assert NP.all(U.shape == B.shape)
+        assert X.dtype == B.dtype
+        assert NP.all(X.shape == B.shape)
 
-        return U
+        return X
 
 
     # full complement
     assert hasattr(tree, 'schur_complement')
 
-    B3 = B[-n3:,:]
-    A31 = A[:,:-n3][-n3:,:]
     S = tree.schur_complement
+    X[-n3:,:] = SL.cho_solve( \
+                S, B[-n3:,:]-A[:,:-n3][-n3:,:]*X[:-n3,:], check_finite=False)
+    del S
 
-    X3 = SL.cho_solve(S, B3 - A31 * U)
+    H = ML.empty([n1+n2,n3], dtype=A.dtype)
+    H[:n1,:] = solve_SLE(left, A11, A[:,-n3:][:n1,:].todense())
+    H[n1:,:] = solve_SLE(right, A22, A[:,-n3:][n1:n1+n2,:].todense())
 
-    # manual memory management
-    U = None; A31 = None; B3 = None
+    del A11; del A22
 
-    A13 = A[:,-n3:][:n1,:].todense()
-    A23 = A[:,-n3:][n1:n1+n2,:].todense()
-
-    H1 = ML.matrix( solve_SLE(left, A11, A13) )
-    H2 = ML.matrix( solve_SLE(right, A22, A23) )
-
-    # manual memory management
-    A11 = None; A22 = None; A13 = None; A23 = None
-
-    X1 = U1 - H1 * X3
-    X2 = U2 - H2 * X3
-    X = NP.vstack([X1, X2, X3])
+    X[:-n3,:] -= H*X[-n3:,:]
 
     assert X.dtype == B.dtype
     assert NP.all(X.shape == B.shape)
@@ -164,9 +152,10 @@ def compute_schur_complement(A, tree):
     left = tree.left_child
     right = tree.right_child
 
+    n = A.shape[0]
     n1 = left.n
     n2 = right.n
-    n3 = A.shape[0] - n1 - n2
+    n3 = n - n1 - n2
 
     A11, A22, A33 = get_submatrices(A, tree)
 
@@ -186,13 +175,12 @@ def compute_schur_complement(A, tree):
     A13 = A[:,-n3:][:n1,:].todense()
     A23 = A[:,-n3:][n1:n1+n2,:].todense()
 
-    T13 = solve_SLE(new_left, A11, A13)
-    T23 = solve_SLE(new_right,A22, A23)
-    T = NP.vstack([T13, T23])
+    T = ML.empty( [n1+n2,n3], dtype=A.dtype )
+    T[:n1,:] = solve_SLE(new_left, A11, A13)
+    T[n1:,:] = solve_SLE(new_right,A22, A23)
 
-    A3x = A[:,:-n3][-n3:,:]
-    S = A33 - A3x * T
-    C = SL.cho_factor(S, lower=True)
+    S = A33 - A[:,:-n3][-n3:,:] * T
+    C = SL.cho_factor(S, lower=True, check_finite=False)
 
     new_tree = copy.copy(tree)
     new_tree.left_child = new_left
