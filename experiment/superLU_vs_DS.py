@@ -104,7 +104,7 @@ def measure_solve_times(filename, solver, A, ms, solve):
 
 
 
-def compute_nnz_schur(ptree):
+def compute_nnz_ds(ptree):
     if Tree.is_leaf_node(ptree):
         n = ptree.n
         return n*n
@@ -117,8 +117,9 @@ def compute_nnz_schur(ptree):
 
     mem = \
         n3*n3 + \
-        compute_nnz_schur(ptree.left_child) + \
-        compute_nnz_schur(ptree.right_child)
+        (n1+n2)*n3 + \
+        compute_nnz_ds(ptree.left_child) + \
+        compute_nnz_ds(ptree.right_child)
 
     return mem
 
@@ -156,7 +157,7 @@ def benchmark_direct_substructuring(filename, A, ms, n_direct):
     t_setup, c_setup, ptree, solve = measure_time(setup)
     t_solve, c_solve = measure_solve_times(filename, 'DS', A, ms, solve)
 
-    nnz = compute_nnz_schur(ptree)
+    nnz = compute_nnz_ds(ptree)
 
     stat = {
         'solver': 'DS',
