@@ -132,12 +132,11 @@ def make_schur(A, n_direct=1024):
     ptree = DS.setup(ptree, App)
 
     def solve(B):
-        Bp = B[perm,:]
-        Xp = DS.solve_SLE(ptree, App, Bp)
-        X = 0*B
-        X[perm,:] = Xp
+        B = B[perm,:]
+        DS.solve_SLE(ptree, App, B, overwrite_b=True)
+        B[perm,:] = B
 
-        return X
+        return B
 
 
     return ptree, solve
