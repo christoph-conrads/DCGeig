@@ -61,7 +61,6 @@ target_compile_options(pysolvers PUBLIC ${CYTHON_CFLAGS})
 target_include_directories(pysolvers PUBLIC ${PYTHON_INCLUDE_DIRS})
 target_include_directories(pysolvers PUBLIC ${NUMPY_INCLUDE_DIRS})
 target_link_libraries(pysolvers PUBLIC ${PYTHON_LIBRARIES})
-target_include_directories(metis PUBLIC ${NUMPY_INCLUDE_DIRS})
 target_link_libraries(pysolvers PUBLIC ${METIS_LIBRARIES})
 target_link_libraries(pysolvers PUBLIC solvers)
 
