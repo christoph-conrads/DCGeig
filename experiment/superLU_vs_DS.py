@@ -5,7 +5,6 @@
 # - SuperLU,
 # - SuperLU computing a Cholesky factorization,
 # - direct substructuring.
-# Code for commit 2a2d81965066820a946a2b6869069565d96ea960, 2016-07-12
 
 import numpy as NP
 import numpy.random
@@ -17,11 +16,11 @@ import scipy.sparse.linalg as SL
 
 import scipy.io as IO
 
+import dcgeig.direct_substructuring as DS
 import dcgeig.metis as metis
 import dcgeig.utils as utils
 import dcgeig.sparse_tools as sparse_tools
 from dcgeig.sparse_tools import Tree
-import dcgeig.multilevel_tools as multilevel_tools
 
 import sys
 import os.path as OP
@@ -129,11 +128,11 @@ def make_schur(A, n_direct=1024):
     ptree, perm = sparse_tools.multilevel_nested_dissection(A, n_direct)
 
     App = A[:,perm][perm,:]
-    ptree = multilevel_tools.compute_schur_complement(App, ptree)
+    ptree = DS.setup(ptree, App)
 
     def solve(B):
         Bp = B[perm,:]
-        Xp = multilevel_tools.solve_SLE(ptree, App, Bp)
+        Xp = DS.solve_SLE(ptree, App, Bp)
         X = 0*B
         X[perm,:] = Xp
 

@@ -6,6 +6,7 @@
 # This file is part of DCGeig and it is subject to the terms of the DCGeig
 # license. See http://DCGeig.tech/license for a copy of this license.
 
+import dcgeig.direct_substructuring as DS
 import dcgeig.utils as utils
 import dcgeig.multilevel_tools as tools
 import dcgeig.sparse_tools as sparse_tools
@@ -122,7 +123,7 @@ def impl(options, K, M, level, ptree):
         wallclock_time_sle_start = time.time()
         t = eta > NP.finfo(K.dtype).eps
         tau = max(d)
-        X[:,t] = tools.solve_SLE(ptree, K, (K - tau*M) * X[:,t])
+        X[:,t] = DS.solve_SLE(ptree, K, (K - tau*M) * X[:,t])
         wallclock_time_sle += time.time() - wallclock_time_sle_start
 
         wallclock_time_rr_start = time.time()
@@ -160,7 +161,7 @@ def execute(options):
     M = M[:,perm][perm,:]
 
     ptree = sparse_tools.add_postorder_id(ptree)
-    ptree = tools.compute_schur_complement(K, ptree)
+    ptree = DS.setup(ptree, K)
 
     level = 0
     d, X, _ = impl(options, K, M, level, ptree)

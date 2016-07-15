@@ -1,5 +1,6 @@
 install(FILES
 		__init__.py
+		test_direct_substructuring.py
 		test_error_analysis.py
 		test_metis.py
 		test_multilevel_solver.py

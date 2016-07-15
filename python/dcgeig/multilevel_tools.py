@@ -13,14 +13,10 @@ from dcgeig.sparse_tools import Tree
 
 import numpy as NP
 import numpy.matlib as ML
-import numpy.linalg
 
-import scipy
 import scipy.sparse as SS
-import scipy.linalg as SL
+import scipy.linalg
 import scipy.sparse.linalg as LA
-
-import copy
 
 import time
 
@@ -63,131 +59,6 @@ def get_submatrices(A, ptree):
     A33 = A[:,n1+n2:][n1+n2:,:]
 
     return A11, A22, A33
-
-
-
-
-# Solve with schur complement
-def solve_SLE(tree, A, B):
-    assert SS.isspmatrix(A)
-    assert isinstance(tree, Tree)
-    assert B.shape[0] == A.shape[0]
-
-
-    if Tree.is_leaf_node(tree):
-        assert hasattr(tree, 'cholesky_factor')
-
-        C = tree.cholesky_factor
-        X = SL.cho_solve(C, B, check_finite=False)
-
-        assert X.dtype == B.dtype
-        assert NP.all(X.shape == B.shape)
-
-        return X
-
-
-    # get submatrices
-    left = tree.left_child
-    right = tree.right_child
-
-    n = A.shape[0]
-    n1 = left.n
-    n2 = right.n
-    n3 = n - n1 - n2
-
-    A11, A22, A33 = get_submatrices(A, tree)
-    del A33
-
-    X = NP.empty_like(B)
-    X[:n1,:] = solve_SLE(left, A11, B[:n1,:])
-    X[n1:n1+n2,:] = solve_SLE(right, A22, B[n1:n1+n2,:])
-
-
-    # return in block diagonal case
-    if n3 == 0:
-        assert X.dtype == B.dtype
-        assert NP.all(X.shape == B.shape)
-
-        return X
-
-
-    # full complement
-    assert hasattr(tree, 'schur_complement')
-
-    S = tree.schur_complement
-    X[-n3:,:] = SL.cho_solve( \
-                S, B[-n3:,:]-A[:,:-n3][-n3:,:]*X[:-n3,:], check_finite=False)
-    del S
-
-    H = ML.empty([n1+n2,n3], dtype=A.dtype)
-    H[:n1,:] = solve_SLE(left, A11, A[:,-n3:][:n1,:].todense())
-    H[n1:,:] = solve_SLE(right, A22, A[:,-n3:][n1:n1+n2,:].todense())
-
-    del A11; del A22
-
-    X[:-n3,:] -= H*X[-n3:,:]
-
-    assert X.dtype == B.dtype
-    assert NP.all(X.shape == B.shape)
-
-    return X
-
-
-
-def compute_schur_complement(A, tree):
-    assert SS.isspmatrix(A)
-    assert isinstance(tree, Tree)
-
-
-    if Tree.is_leaf_node(tree):
-        assert not hasattr(tree, 'cholesky_factor')
-
-        new = copy.copy(tree)
-        new.cholesky_factor = scipy.linalg.cho_factor(A.todense(), lower=True)
-
-        return new
-
-
-    # get submatrices
-    left = tree.left_child
-    right = tree.right_child
-
-    n = A.shape[0]
-    n1 = left.n
-    n2 = right.n
-    n3 = n - n1 - n2
-
-    A11, A22, A33 = get_submatrices(A, tree)
-
-    new_left = compute_schur_complement(A11, left)
-    new_right = compute_schur_complement(A22, right)
-
-    # block diagonal case?
-    if n3 == 0:
-        new_tree = copy.copy(tree)
-        new_tree.left_child = new_left
-        new_tree.right_child = new_right
-
-        return new_tree
-
-
-    # matrix not block diagonal
-    A13 = A[:,-n3:][:n1,:].todense()
-    A23 = A[:,-n3:][n1:n1+n2,:].todense()
-
-    T = ML.empty( [n1+n2,n3], dtype=A.dtype )
-    T[:n1,:] = solve_SLE(new_left, A11, A13)
-    T[n1:,:] = solve_SLE(new_right,A22, A23)
-
-    S = A33 - A[:,:-n3][-n3:,:] * T
-    C = SL.cho_factor(S, lower=True, check_finite=False)
-
-    new_tree = copy.copy(tree)
-    new_tree.left_child = new_left
-    new_tree.right_child = new_right
-    new_tree.schur_complement = C
-
-    return new_tree
 
 
 
