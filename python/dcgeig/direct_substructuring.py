@@ -18,8 +18,19 @@ import scipy.linalg as SL
 import copy
 
 
+def solve_SLE(tree, A, B, overwrite_b=False):
+    assert isinstance(tree, Tree)
+    assert SS.isspmatrix(A)
+    assert B.shape[0] == A.shape[0]
 
-def solve_SLE(tree, A, B):
+    if overwrite_b:
+        solve_SLE_overwrite(tree, A, B)
+    else:
+        return solve_SLE_impl(tree, A, B)
+
+
+
+def solve_SLE_impl(tree, A, B):
     assert isinstance(tree, Tree)
     assert SS.isspmatrix(A)
     assert B.shape[0] == A.shape[0]
@@ -82,6 +93,60 @@ def solve_SLE(tree, A, B):
     assert NP.all(X.shape == B.shape)
 
     return X
+
+
+
+def solve_SLE_overwrite(tree, A, B):
+    assert isinstance(tree, Tree)
+    assert SS.isspmatrix(A)
+    assert B.shape[0] == A.shape[0]
+
+
+    if Tree.is_leaf_node(tree):
+        assert hasattr(tree, 'cholesky_factor')
+
+        C = tree.cholesky_factor
+        B[:,:] = SL.cho_solve(C, B, check_finite=False)
+
+        return
+
+
+    # get submatrices
+    left = tree.left_child
+    right = tree.right_child
+
+    n = A.shape[0]
+    n1 = left.n
+    n2 = right.n
+    n3 = n - n1 - n2
+
+    A11, A22, A33 = tools.get_submatrices(A, tree)
+    del A33
+
+    solve_SLE_overwrite(left, A11, B[:n1,:])
+    solve_SLE_overwrite(right, A22, B[n1:n1+n2,:])
+
+
+    # return in block diagonal case
+    if n3 == 0:
+        return
+
+
+    # full complement
+    assert hasattr(tree, 'schur_complement')
+
+    S = tree.schur_complement
+    B[-n3:,:] -= A[:,:-n3][-n3:,:] * B[:-n3,:]
+    B[-n3:,:] = SL.cho_solve(S, B[-n3:,:], check_finite=False)
+    del S
+
+    H = ML.empty([n1+n2,n3], dtype=A.dtype)
+    H[:n1,:] = solve_SLE(left, A11, A[:,-n3:][:n1,:].todense())
+    H[n1:,:] = solve_SLE(right, A22, A[:,-n3:][n1:n1+n2,:].todense())
+
+    del A11; del A22
+
+    B[:-n3,:] -= H*B[-n3:,:]
 
 
 

@@ -33,6 +33,10 @@ class Test_solve_SLE(unittest.TestCase):
 
         self.assertTrue( NP.all(A*x == b) )
 
+        y = NP.copy(b)
+        DS.solve_SLE(tree, A, y, overwrite_b=True)
+        self.assertTrue( NP.all(A*y == b) )
+
 
 
     def test_2(self):
@@ -79,6 +83,12 @@ class Test_solve_SLE(unittest.TestCase):
             return SL.norm(r,1) / (LA.norm(A,1) * SL.norm(x,1) + SL.norm(b,1))
 
         eta = compute_backward_error(A, x, b)
+        self.assertTrue( eta <= NP.finfo(dtype).eps )
+
+        y = NP.copy(b)
+        DS.solve_SLE(tree, A, y, overwrite_b=True)
+
+        eta = compute_backward_error(A, y, b)
         self.assertTrue( eta <= NP.finfo(dtype).eps )
 
 
