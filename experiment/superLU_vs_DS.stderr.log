@@ -1,0 +1,22 @@
+bcsstm13.mtx        LL: Factor is exactly singular
+bcsstm13.mtx        LU: Factor is exactly singular
+bcsstm13.mtx        DS: 1-th leading minor not positive definite
+bcsstm36.mtx        LL: Factor is exactly singular
+bcsstm36.mtx        LU: Factor is exactly singular
+bcsstm36.mtx        DS: 1-th leading minor not positive definite
+bcsstm38.mtx        LL: Factor is exactly singular
+bcsstm38.mtx        LU: Factor is exactly singular
+bcsstm38.mtx        DS: 1-th leading minor not positive definite
+bmw7st_1.mtx        LL n_rhs=2048: out of memory
+bmw7st_1.mtx        LU n_rhs=2048: out of memory
+bmw7st_1.mtx        DS n_rhs=2048: out of memory
+bmwcra_1.mtx        LL n_rhs=1024: out of memory
+bmwcra_1.mtx        LU n_rhs=1024: out of memory
+bmwcra_1.mtx        DS n_rhs=1024: out of memory
+pwtk.mtx            LL n_rhs=1024: out of memory
+pwtk.mtx            LU n_rhs=1024: out of memory
+pwtk.mtx            DS n_rhs=512: out of memory
+s3dkq4m2.mtx        DS n_rhs=2048: out of memory
+ship_003.mtx        LL n_rhs=2048: out of memory
+ship_003.mtx        LU n_rhs=1024: out of memory
+ship_003.mtx        DS n_rhs=1024: out of memory
