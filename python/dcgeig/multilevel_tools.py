@@ -77,9 +77,22 @@ def bound_expected_backward_error(options, K, K21, M, M21):
 
 
 
-def compute_errors(K, M, d, X):
-    eta = EA.compute_backward_error(K, M, d, X)
-    kappa = EA.compute_condition_number(K, M, d, X)
+def compute_errors(K, M, d, X, block_size=256):
+    assert isinstance(block_size, int)
+    assert block_size > 0
+
+    n = K.shape[0]
+    m = d.size
+
+    eta = NP.full_like(d, NP.nan)
+    kappa = NP.full_like(d, NP.nan)
+
+    for l in xrange(0, m, block_size):
+        r = min(l+block_size, n)
+
+        eta[l:r] = EA.compute_backward_error(K, M, d[l:r], X[:,l:r])
+        kappa[l:r] = EA.compute_condition_number(K, M, d[l:r], X[:,l:r])
+
     delta = eta * kappa
 
     return eta, delta
