@@ -1,0 +1,10 @@
+# multilevel_gep_solve 1.2.0
+# stiffness_matrix   /home/starfish/matrices/ship_003.mtx
+# mass_matrix        identity
+# lambda_c           1.000000e-08
+# n_direct           1024
+# tol                1.192093e-07
+# c_s                10
+# n_s_min            32
+# max_num_iterations 10
+#id lvl      n  n_c  n_s    min:ev  max:ev median:ev    min:be  max:be median:be    min:fe  max:fe median:fe iter t-sle   t-rr   t-wc  t-cpu  mems memd  mlu

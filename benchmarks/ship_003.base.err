@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/multilevel-gep-solver", line 404, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/multilevel-gep-solver", line 374, in main
+    ptree, perm = MS.get_ordering(options, K, M)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 154, in get_ordering
+    dim_tree, perm = sparse_tools.multilevel_bisection(G,options.n_direct)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/sparse_tools.py", line 171, in multilevel_bisection
+    t = metis.bisection(A)
+  File "metis.pyx", line 94, in metis.bisection (/tmp/build/python/metis.c:2303)
+  File "metis.pyx", line 62, in metis.sanitize_input (/tmp/build/python/metis.c:1788)
+ValueError: Matrix entries must be finite real values

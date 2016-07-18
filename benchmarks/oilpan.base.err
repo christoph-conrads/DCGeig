@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/multilevel-gep-solver", line 404, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/multilevel-gep-solver", line 380, in main
+    d, X, _ = MS.execute(options, K, M, ptree)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 165, in execute
+    return impl(options, K, M, level, ptree)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 86, in impl
+    impl(options, K22, M22, level+1, right_child)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 94, in impl
+    X = ML.matrix( scipy.linalg.block_diag(X1, X2) )
+  File "/home/starfish/lib64/python2.7/site-packages/numpy/matrixlib/defmatrix.py", line 263, in __new__
+    if copy: return new.copy()
+MemoryError
