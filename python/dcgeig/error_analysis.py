@@ -64,9 +64,9 @@ def compute_backward_error(K, M, d, X):
 
 
     # normalize vectors
-    X = X / norms(X)
-    KX = K*X
-    MX = M*X
+    ns = norms(X)
+    KX = K*X / ns
+    MX = M*X / ns
 
     eta = NP.full(m, nan)
 
@@ -94,10 +94,13 @@ def compute_backward_error(K, M, d, X):
 
     R[:,t] = KX[:,t] - NP.multiply(MX[:,t], d[t])
     R[:,u] = MX[:,u]
+    del KX
+    del MX
 
-    numerator[v] = \
-        NP.sqrt( \
-            abs(2*norms(R[:,v])**2 - columnwise_dot_product(X[:,v], R[:,v])**2))
+    numerator[v] = NP.sqrt( \
+            abs(2*norms(R[:,v])**2 -
+            (columnwise_dot_product(X[:,v], R[:,v]) / ns[v])**2 )
+        )
 
     denumerator[t] = weighted_norm_average(k_F, m_F, d[t])
     denumerator[u] = m_F
