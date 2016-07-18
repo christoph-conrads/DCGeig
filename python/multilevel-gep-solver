@@ -18,6 +18,7 @@ import dcgeig.error_analysis as EA
 import dcgeig.multilevel_solver as MS
 import dcgeig.multilevel_tools as multilevel_tools
 import dcgeig.sparse_tools as sparse_tools
+import dcgeig.stats
 import dcgeig.utils as utils
 from dcgeig.sparse_tools import Tree
 
@@ -227,7 +228,8 @@ def print_input_information(options, K, M, lambda_c, tol):
 
 
 def print_output_information( \
-        options, lambda_c, tol, d, X, eta, kappa, wallclock_time, cpu_time):
+        options, lambda_c, tol, d, X, eta, kappa,
+        stats, wallclock_time, cpu_time):
     n = X.shape[0]
     t = d <= lambda_c
     n_c = NP.sum(t)
@@ -251,8 +253,10 @@ def print_output_information( \
         return
 
 
-    solver_info_fmt = 'Solved in {:.1f} seconds ({:.1f}s CPU time).'
-    print solver_info_fmt.format(wallclock_time, cpu_time)
+    n_problems = len(stats)
+    solver_info_fmt = \
+        'Solved {:d} problem(s) in {:.1f} seconds ({:.1f}s CPU time).'
+    print solver_info_fmt.format(n_problems, wallclock_time, cpu_time)
 
     if n_c == 0:
         fmt = ( \
@@ -356,7 +360,7 @@ def main():
 
     print_output_information( \
         options, lambda_c, tol, d, X, eta, kappa,
-        wallclock_time, cpu_time)
+        stats, wallclock_time, cpu_time)
 
 
     # print stats?
@@ -365,6 +369,8 @@ def main():
         stats_file = open(options.stats_path, 'w', use_line_buffering)
 
         stats_file.write( get_stats_file_header(options, lambda_c, tol) )
+        stats_file.write( dcgeig.stats.get_header() )
+        stats_file.write( dcgeig.stats.to_string(stats) )
 
         stats_file.close()
 

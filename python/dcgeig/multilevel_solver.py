@@ -145,6 +145,9 @@ def solve_gep(options, K, M, lambda_c, tol, level):
 
     # solve directly?
     if n <= options.n_direct:
+        wallclock_time_start = time.time()
+        cpu_time_start = time.clock()
+
         d, X, eta, delta = tools.rayleigh_ritz(K, M)
 
         t = select(d, delta)
@@ -171,6 +174,9 @@ def solve_gep(options, K, M, lambda_c, tol, level):
 
 
     # combine
+    wallclock_time_start = time.time()
+    cpu_time_start = time.clock()
+
     d = NP.concatenate([d1, d2])
     X = ML.matrix( NP.full([n, d.size], 0, dtype=K.dtype) )
     X[ t, :d1.size] = X1
@@ -208,14 +214,21 @@ def solve_gep(options, K, M, lambda_c, tol, level):
         return d, X, make_stats_tree(**locals())
 
 
-    LU = LA.splu( SS.csc_matrix(K), diag_pivot_thresh=0 )
+    LU = LA.splu(K, diag_pivot_thresh=0)
+
+    wallclock_time_sle = 0
+    wallclock_time_rr = 0
 
     for i in range(1, options.max_num_iterations+1):
+        wallclock_time_sle_start = time.time()
         t = eta > NP.finfo(K.dtype).eps
         tau = max(d)
-
         X[:,t] = LU.solve( (K - tau*M) * X[:,t] )
+        wallclock_time_sle += time.time() - wallclock_time_sle_start
+
+        wallclock_time_rr_start = time.time()
         d, X, eta, delta = tools.rayleigh_ritz(K, M, X)
+        wallclock_time_rr += time.time() - wallclock_time_rr_start
 
         if do_stop(d, X, eta, delta):
             break
@@ -226,7 +239,7 @@ def solve_gep(options, K, M, lambda_c, tol, level):
     t = select(d, delta)
     d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-    return d, X, make_stats_tree(**locals())
+    return d, X, make_stats_tree(num_iterations=i, **locals())
 
 
 
@@ -243,7 +256,6 @@ def execute(options, A, B, lambda_c, tol, level=0):
     assert isinstance(level, int)
     assert level >= 0
 
-    t0 = time.time()
     n = A.shape[0]
     l, labels = get_subproblems(A, B)
 
@@ -289,11 +301,19 @@ def execute(options, A, B, lambda_c, tol, level=0):
 def make_stats_tree( \
         options, K, M, lambda_c, tol, level,
         d, X, eta, delta,
+        wallclock_time_start, cpu_time_start,
+        wallclock_time_rr=None, wallclock_time_sle=None,
         K12=None, M12=None,
         num_iterations=0, LU=None,
         stats1=None, stats2=None,
         **kwargs):
     assert LU is None or NP.all(LU.perm_c == LU.perm_r)
+
+    wallclock_time = time.time() - wallclock_time_start
+    cpu_time = time.clock() - cpu_time_start
+
+    wc_time_rr = wallclock_time_rr if wallclock_time_rr else wallclock_time
+    wc_time_sle = wallclock_time_sle if wallclock_time_sle else 0.0
 
     normK12 = NP.nan if K12 is None else LA.norm(K12)
     normM12 = NP.nan if M12 is None else LA.norm(M12)
@@ -301,23 +321,30 @@ def make_stats_tree( \
     n = K.shape[0]
     n_c = NP.sum(d <= lambda_c)
     n_s = d.size
-    nnz_LU = NP.nan if LU is None else LU.nnz
+    nnz_LU = -1 if LU is None else LU.nnz
 
     rfe = delta / abs(d)
 
     data = {
             'n': n,
             'level': level,
-            'nnz(K)': K.nnz,
-            'nnz(M)': M.nnz,
-            'norm(K12)': normK12,
-            'norm(M12)': normM12,
-            'nnz(L)': nnz_LU,
+            'nnz_K': K.nnz,
+            'nnz_M': M.nnz,
+            'norm_K': LA.norm(K),
+            'norm_M': LA.norm(M),
+            'norm_K12': normK12,
+            'norm_M12': normM12,
+            'nnz_LU': nnz_LU,
             'n_c': n_c,
             'n_s': n_s,
+            'd_rel': d / lambda_c,
             'eta': eta,
             'rfe': rfe,
-            'num_iterations': num_iterations
+            'num_iterations': num_iterations,
+            'wallclock_time_rr': wc_time_rr,
+            'wallclock_time_sle': wc_time_sle,
+            'wallclock_time': wallclock_time,
+            'cpu_time': cpu_time
     }
 
     node = Tree.make_internal_node(stats1, stats2, data)
