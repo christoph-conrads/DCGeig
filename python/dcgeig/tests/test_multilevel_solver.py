@@ -86,56 +86,6 @@ class Test_get_subproblems(unittest.TestCase):
 
 
 
-class Test_compute_expected_backward_error(unittest.TestCase):
-    def test_simple(self):
-        options = tools.Options()
-        lambda_c = 1
-        n = 5
-        p = 3
-        m = n-p
-
-        K = SS.identity(n, format='lil')
-        K21 = SS.csc_matrix( (m,p) )
-
-        M = SS.identity(n, format='dok')
-        M21 = SS.lil_matrix( (m,p) )
-
-        eta = MS.compute_expected_backward_error(options, lambda_c, K, K21, M, M21)
-
-        self.assertTrue( NP.isrealobj(eta) )
-        self.assertEqual( eta, 0 )
-
-
-
-    def test_cases(self):
-        options = tools.Options()
-        lambda_c = 10
-        n = 7
-        p = 4
-        m = n-p
-        assert p >= m
-
-        ds = NP.full(n, 1, dtype=NP.complex128)
-        A = SS.spdiags(ds, 0, n, n, format='lil')
-        A[n-1,0] = 0.0 + 1.0j
-        A[0,n-1] = 0.0 - 1.0j
-        A21 = A[:,:p][-m:,:]
-
-        B = SS.identity(n, dtype=NP.complex128, format='dok')
-        B21 = B[:,:p][-m:,:]
-
-        eta = MS.compute_expected_backward_error(options, lambda_c, A, A21, B, B21)
-
-        self.assertTrue( NP.isrealobj(eta) )
-        self.assertEqual( eta, NP.sqrt(1.5/p) * 1.0/3.0 )
-
-        eta = MS.compute_expected_backward_error(options, lambda_c, B, B21, A, A21)
-
-        self.assertTrue( NP.isrealobj(eta) )
-        self.assertTrue( eta > 0 )
-
-
-
 class Test_solve_gep(unittest.TestCase):
     def test_simple(self):
         n = 2

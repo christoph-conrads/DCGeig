@@ -90,39 +90,6 @@ def get_subproblems(K, M):
 
 
 
-def compute_expected_backward_error(options, lambda_c, K, K21, M, M21):
-    assert K21.shape == M21.shape
-    assert NP.isrealobj(lambda_c)
-    assert lambda_c > 0
-
-    norm = lambda A: LA.norm(A, 'fro')
-    p = max(K21.shape)
-
-    k = norm(K)
-    k21 = norm(K21)
-    assert k21 <= k
-
-    m = norm(M)
-    m21 = norm(M21)
-    assert m21 <= m
-
-    exp = -1
-
-    if m21 == 0 or k21/m21 >= k/m:
-        exp = NP.sqrt(1.5 / p) * k21/k
-    else:
-        nominator = k21**2 + lambda_c**2 * m21**2
-        denominator = k**2 + lambda_c**2 * m**2
-        exp = NP.sqrt(1.5 / p) * NP.sqrt(nominator / denominator)
-
-    assert NP.isrealobj(exp)
-    assert exp >= 0
-    assert exp <= 1
-
-    return exp
-
-
-
 def solve_gep(options, K, M, lambda_c, tol, level):
     assert utils.is_hermitian(K)
     assert utils.is_hermitian(M)
