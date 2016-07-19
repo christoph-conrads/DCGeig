@@ -116,38 +116,17 @@ def balance_matrix_pencil(K, M):
 
 
 
-def matrix_pencil_to_graph(K, M, w):
-    # check K
-    if not SS.isspmatrix(K):
+def matrix_to_graph(A, p=2):
+    if not SS.isspmatrix(A):
         raise ValueError('K must be a sparse matrix')
-    if not utils.is_hermitian(K):
+    if not utils.is_hermitian(A):
         raise ValueError('K must be Hermitian')
-    # check M
-    if not SS.isspmatrix(M):
-        raise ValueError('M must be a sparse matrix')
-    if not utils.is_hermitian(M):
-        raise ValueError('M must be Hermitian')
-    # check (K, M)
-    if K.shape[0] != M.shape[0]:
-        raise ValueError('Matrices must have the same dimension')
-    # check w
-    if not isinstance(w, numbers.Real):
-        raise ValueError('w must be real')
-    if w < 0:
-        raise ValueError('w must be non-negative')
 
-    # compute |K|.^2
-    A = SS.csc_matrix(abs(K))
-    A.data = NP.square(A.data)
-
-    # compute |M|.^2
-    B = SS.csc_matrix(abs(M))
-    B.data = NP.square(B.data)
-
-    G = A + w**2 * B
-    G = SS.csc_matrix(G, dtype=NP.float32)
+    G = SS.csc_matrix(abs(A), dtype=NP.float32, copy=True)
+    G.data = abs(G.data)**p
 
     assert NP.all(G.data >= 0)
+    assert not NP.any( NP.isinf(G.data) )
 
     return G
 

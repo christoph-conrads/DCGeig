@@ -124,7 +124,7 @@ def solve_gep(options, K, M, lambda_c, tol, level):
 
 
     # divide
-    G = abs(K).astype(NP.float32)
+    G = sparse_tools.matrix_to_graph(K)
     t = metis.bisection(G)
     del G
 

@@ -122,7 +122,7 @@ class Test_solve_gep(unittest.TestCase):
         K[2,1] = -1.0
 
         M = SS.identity(n, dtype=NP.float32, format='csc')
-        
+
         options = tools.get_default_options()
         options.n_direct = 2
         tol = 1e-6

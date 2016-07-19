@@ -76,7 +76,7 @@ class Test_balance_matrix_pencil(unittest.TestCase):
 
 
 
-class Test_matrix_pencil_to_graph(unittest.TestCase):
+class Test_matrix_to_graph(unittest.TestCase):
     def check_return_value(self, G):
         self.assertTrue( SS.isspmatrix(G) )
         self.assertEqual( G.dtype, NP.float32 )
@@ -86,12 +86,9 @@ class Test_matrix_pencil_to_graph(unittest.TestCase):
     def test_simple(self):
         n = 2
         K = SS.identity(n)
-        M = SS.identity(n)
-        w = 2
 
-        G = sparse_tools.matrix_pencil_to_graph(K, M, w)
+        G = sparse_tools.matrix_to_graph(K)
         self.check_return_value(G)
-
 
 
     def test_complex(self):
@@ -101,18 +98,8 @@ class Test_matrix_pencil_to_graph(unittest.TestCase):
         K[0,1] = -1.0j
         K[1,0] = +1.0j
 
-        M = SS.identity(n, dtype=NP.complex, format='lil')
-        M[0,2] = 3.0 + 4.0j
-        M[2,0] = 3.0 - 4.0j
-
-        w = 2
-        G = sparse_tools.matrix_pencil_to_graph(K, M, w)
-
+        G = sparse_tools.matrix_to_graph(K)
         self.check_return_value(G)
-        self.assertEqual( G[0,1], 1 )
-        self.assertEqual( G[1,0], 1 )
-        self.assertEqual( G[0,2], 100 )
-        self.assertEqual( G[2,0], 100 )
 
 
 
