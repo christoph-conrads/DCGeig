@@ -90,52 +90,6 @@ def get_subproblems(K, M):
 
 
 
-def perturb_matrix(A, delta):
-    assert SS.isspmatrix(A)
-    assert utils.is_hermitian(A)
-    assert isinstance(delta, numbers.Real)
-    assert delta >= 0
-    assert delta <= 1
-
-
-    if delta == 0:
-        return A
-
-
-    # find off-diagonal entries smallest in modulus for erasing
-    # this code examines only lower triangular part to preserve hermiticity
-    n = A.shape[0]
-    assert n > 0
-
-    off2 = (delta * LA.norm(A))**2 / (1 + n/2.0)
-
-    L = SS.tril(A, -1, format='csc')
-    L.sum_duplicates()
-    L.eliminate_zeros()
-
-    assert NP.all( A.diagonal() >= 0 )
-
-    xs = abs(L.data)
-    perm = NP.argsort(xs)
-    ys = 2 * NP.cumsum(xs[perm]**2)
-
-    t = ys <= off2
-    L.data[perm[t]] = 0
-
-    S = SS.tril(A, -1, format='csc') - L
-    S.eliminate_zeros()
-    eigs = LA.eigsh(S, k=1, ncv=32, return_eigenvectors=False)
-    D = SS.spdiags( A.diagonal() + max(abs(eigs)), 0, n, n )
-
-    B = SS.csc_matrix(D + L + L.H)
-
-    assert utils.is_hermitian(B)
-    assert not SS.isspmatrix_coo(B) # does not allow indexing B[i,j]
-
-    return B
-
-
-
 def solve_gep(options, K, M, lambda_c, tol, level):
     assert utils.is_hermitian(K)
     assert utils.is_hermitian(M)
@@ -169,27 +123,20 @@ def solve_gep(options, K, M, lambda_c, tol, level):
         return d, X, make_stats_tree(**locals())
 
 
-    # perturb stiffness matrix
-    A = perturb_matrix(K, tol) if level == 0 else K
-
-
     # divide
-    G = abs(A).astype(NP.float32)
+    G = abs(K).astype(NP.float32)
     t = metis.bisection(G)
     del G
 
-    A11, A22, A12 = get_submatrices(A, t)
+    K11, K22, K12 = get_submatrices(K, t)
     M11, M22, M12 = get_submatrices(M, t)
-    del A12
-    del M12
 
 
     # conquer
-    d1, X1, stats1 = solve_gep(options, A11, M11, lambda_c, tol, level+1)
-    d2, X2, stats2 = solve_gep(options, A22, M22, lambda_c, tol, level+1)
+    d1, X1, stats1 = solve_gep(options, K11, M11, lambda_c, tol, level+1)
+    d2, X2, stats2 = solve_gep(options, K22, M22, lambda_c, tol, level+1)
 
-    del A
-    del A11; del A22
+    del K11; del K22
     del M11; del M22
 
 

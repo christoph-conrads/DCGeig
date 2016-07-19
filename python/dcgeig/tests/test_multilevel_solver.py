@@ -86,27 +86,6 @@ class Test_get_subproblems(unittest.TestCase):
 
 
 
-class Test_perturb_matrix(unittest.TestCase):
-    def test_simple(self):
-        A = SS.lil_matrix([
-            [   2,    0,    0,    0,    0, 0-2j],
-            [   0,    3,    0,    0,    0, 0-1j],
-            [   0,    0,    4,    0,    0, 0-3j],
-            [   0,    0,    0,    5,    0, 0-4j],
-            [   0,    0,    0,    0,    5, 0-5j],
-            [0+2j, 0+1j, 0+3j, 0+4j, 0+5j, 6]
-        ], dtype=NP.complex64)
-
-        def f(r):
-            norm_A = 25.0
-            delta = NP.sqrt(r) / norm_A
-            return MS.perturb_matrix(A, delta)
-
-        B = f(0)
-        self.assertEqual( (A-B).nnz, 0 )
-
-
-
 class Test_solve_gep(unittest.TestCase):
     def test_simple(self):
         n = 2
