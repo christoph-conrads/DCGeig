@@ -166,11 +166,8 @@ def solve_gep(options, K, M, lambda_c, tol, level):
 
 
     # conquer
-    tol_e = \
-        compute_expected_backward_error(options, lambda_c, K, K12, M, M12)
-    tol_s = max(tol_e, options.internal_tol)
-    d1, X1, stats1 = solve_gep(options, K11, M11, lambda_c, tol_s, level+1)
-    d2, X2, stats2 = solve_gep(options, K22, M22, lambda_c, tol_s, level+1)
+    d1, X1, stats1 = solve_gep(options, K11, M11, lambda_c, tol, level+1)
+    d2, X2, stats2 = solve_gep(options, K22, M22, lambda_c, tol, level+1)
 
     del K11; del K22
     del M11; del M22
