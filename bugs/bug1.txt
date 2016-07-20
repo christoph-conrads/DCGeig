@@ -1,0 +1,10 @@
+Unaccounted differences in running times
+
+Commit e0327f9ed480f13eff35cfb953ed4465eeb99dd2 allows the
+eigensolver to detect independent subproblems. Nevertheless, there are
+noticeable differences in the running times of the solver even for those matrix
+pencils, where there is only a single subproblem. These are
+- gyro_k, gyro_m (678s vs 730s wallclock time)
+- vanbody (1627s vs 1841s)
+- ct20stif (1836s vs 1700s)
+- bmw7st_1 (1271s vs 1203s)
