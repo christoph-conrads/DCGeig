@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/multilevel-gep-solver", line 380, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/multilevel-gep-solver", line 349, in main
+    d, X, stats = MS.execute(options, K, M, lambda_c, tol)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 308, in execute
+    X = NP.full( [n, d.size], 0, dtype=A.dtype )
+  File "/home/starfish/lib64/python2.7/site-packages/numpy/core/numeric.py", line 290, in full
+    a = empty(shape, dtype, order)
+MemoryError
