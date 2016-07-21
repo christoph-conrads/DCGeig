@@ -1,0 +1,13 @@
+~/matrices/bcsstk17.mtx   1e2
+~/matrices/bcsstk18.mtx   2e1
+~/matrices/bcsstk25.mtx   1e2
+~/matrices/gyro_k.mtx     1e15
+~/matrices/bcsstk36.mtx   1e6
+~/matrices/vanbody.mtx    2e1
+~/matrices/ct20stif.mtx   2e3
+~/matrices/oilpan.mtx     2e1
+~/matrices/s3dkq4m2.mtx   1e-5
+~/matrices/ship_003.mtx   1e-8
+~/matrices/bmw7st_1.mtx   1e-2
+~/matrices/bmwcra_1.mtx   1e3
+~/matrices/pwtk.mtx       1e-2
