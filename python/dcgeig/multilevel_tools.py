@@ -99,6 +99,7 @@ def make_termination_test(options, lambda_c, level, tol):
     eps = tol if level == 0 else options.internal_tol
 
     def f(d, X, eta, delta):
+        u = NP.finfo(X.dtype).eps
         delta_rel = delta / abs(d)
 
         t = d <= lambda_c
@@ -106,7 +107,9 @@ def make_termination_test(options, lambda_c, level, tol):
         if ~NP.any(t):
             t[0] = True
 
-        return NP.max(eta[t]) <= eps and NP.max(delta_rel[t]) <= 1
+        return \
+            (NP.max(eta[t]) <= eps and NP.max(delta_rel[t]) <= 1) or \
+            (NP.max(eta[t]) <= u)
 
     return f
 
