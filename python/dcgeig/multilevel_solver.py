@@ -10,6 +10,7 @@ import dcgeig.metis as metis
 import dcgeig.utils as utils
 import dcgeig.multilevel_tools as tools
 import dcgeig.sparse_tools as sparse_tools
+import dcgeig.subspace_iteration as subspace_iteration
 from dcgeig.sparse_tools import Tree
 
 import numpy as NP
@@ -183,30 +184,13 @@ def solve_gep(options, K, M, lambda_c, tol, level):
 
     LU = LA.splu(K, diag_pivot_thresh=0)
 
-    wallclock_time_sle = 0
-    wallclock_time_rr = 0
-
-    for i in range(1, options.max_num_iterations+1):
-        wallclock_time_sle_start = time.time()
-        t = eta > NP.finfo(K.dtype).eps
-        tau = max(d)
-        X[:,t] = LU.solve( (K - tau*M) * X[:,t] )
-        wallclock_time_sle += time.time() - wallclock_time_sle_start
-
-        wallclock_time_rr_start = time.time()
-        d, X, eta, delta = tools.rayleigh_ritz(K, M, X)
-        wallclock_time_rr += time.time() - wallclock_time_rr_start
-
-        if do_stop(d, X, eta, delta):
-            break
-
-    assert not NP.any(NP.isinf(d))
-    assert not NP.any(NP.isnan(d))
+    num_iterations, wallclock_time_sle, wallclock_time_rr = \
+        subspace_iteration.execute(options, lambda_c, do_stop, LU, K, M, d, X)
 
     t = select(d, delta)
     d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-    return d, X, make_stats_tree(num_iterations=i, **locals())
+    return d, X, make_stats_tree(**locals())
 
 
 

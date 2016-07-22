@@ -7,5 +7,6 @@ install(FILES
 		test_multilevel_tools.py
 		test_solvers.py
 		test_sparse_tools.py
+		test_subspace_iteration.py
 		test_utils.py
 	DESTINATION ${PACKAGE_DIR}/tests)

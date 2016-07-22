@@ -10,6 +10,7 @@ install(FILES
 		multilevel_solver.py
 		multilevel_tools.py
 		sparse_tools.py
+		subspace_iteration.py
 		stats.py
 		utils.py
 	DESTINATION ${PACKAGE_DIR})
