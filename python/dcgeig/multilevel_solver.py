@@ -91,10 +91,10 @@ def get_subproblems(K, M):
 
 
 
-def solve_gep(options, K, M, lambda_c, tol, level):
-    assert utils.is_hermitian(K)
-    assert utils.is_hermitian(M)
-    assert K.dtype == M.dtype
+def solve_gep(options, A, B, lambda_c, tol, level):
+    assert utils.is_hermitian(A)
+    assert utils.is_hermitian(B)
+    assert A.dtype == B.dtype
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
     assert isinstance(tol, numbers.Real)
@@ -103,12 +103,18 @@ def solve_gep(options, K, M, lambda_c, tol, level):
     assert isinstance(level, int)
     assert level >= 0
 
+
+    # balance matrix pencil
+    s, D = sparse_tools.balance_matrix_pencil(A, B)
+    K = SS.csc_matrix(D * A * D)
+    M = SS.csc_matrix(s * D * B * D)
+
+    select = tools.make_eigenpair_selector(options, lambda_c/s, level)
+
+
     n = K.shape[0]
 
     assert n > 0
-
-
-    select = tools.make_eigenpair_selector(options, lambda_c, level)
 
 
     # solve directly?
@@ -121,7 +127,7 @@ def solve_gep(options, K, M, lambda_c, tol, level):
         t = select(d, delta)
         d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-        return d, X, make_stats_tree(**locals())
+        return s*d, D*X, make_stats_tree(**locals())
 
 
     # divide
@@ -134,8 +140,8 @@ def solve_gep(options, K, M, lambda_c, tol, level):
 
 
     # conquer
-    d1, X1, stats1 = solve_gep(options, K11, M11, lambda_c, tol, level+1)
-    d2, X2, stats2 = solve_gep(options, K22, M22, lambda_c, tol, level+1)
+    d1, X1, stats1 = solve_gep(options, K11, M11, lambda_c/s, tol, level+1)
+    d2, X2, stats2 = solve_gep(options, K22, M22, lambda_c/s, tol, level+1)
 
     del K11; del K22
     del M11; del M22
@@ -162,14 +168,14 @@ def solve_gep(options, K, M, lambda_c, tol, level):
 
 
     eta, delta = tools.compute_errors(K, M, d, X)
-    do_stop = tools.make_termination_test(options, lambda_c, level, tol)
+    do_stop = tools.make_termination_test(options, lambda_c/s, level, tol)
 
 
     if do_stop(d, X, eta, delta):
         t = select(d, delta)
         d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-        return d, X, make_stats_tree(**locals())
+        return s*d, D*X, make_stats_tree(**locals())
 
 
     if d.size == n:
@@ -179,18 +185,18 @@ def solve_gep(options, K, M, lambda_c, tol, level):
             t = select(d, delta)
             d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-        return d, X, make_stats_tree(**locals())
+        return s*d, D*X, make_stats_tree(**locals())
 
 
     LU = LA.splu(K, diag_pivot_thresh=0)
 
     num_iterations, wallclock_time_sle, wallclock_time_rr = \
-        subspace_iteration.execute(options, lambda_c, do_stop, LU, K, M, d, X)
+        subspace_iteration.execute(options, lambda_c/s, do_stop, LU, K, M, d, X)
 
     t = select(d, delta)
     d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
-    return d, X, make_stats_tree(**locals())
+    return s*d, D*X, make_stats_tree(**locals())
 
 
 
@@ -212,17 +218,12 @@ def execute(options, A, B, lambda_c, tol, level=0):
 
     def call_solve_gep(i):
         t = labels == i
-        A_tt = A[:,t][t,:]
-        B_tt = B[:,t][t,:]
+        K = A[:,t][t,:]
+        M = B[:,t][t,:]
 
-        # balance matrix pencil
-        s, D = sparse_tools.balance_matrix_pencil(A_tt, B_tt)
-        K = SS.csc_matrix(D * A_tt * D)
-        M = SS.csc_matrix(s * D * B_tt * D)
+        d, X, stats = solve_gep(options, K, M, lambda_c, tol, level)
 
-        d, X, stats = solve_gep(options, K, M, lambda_c/s, tol, level)
-
-        return s*d, D*X, stats
+        return d, X, stats
 
     rs = map( call_solve_gep, range(l) )
 
@@ -250,8 +251,9 @@ def execute(options, A, B, lambda_c, tol, level=0):
 
 
 def make_stats_tree( \
-        options, K, M, lambda_c, tol, level,
+        options, A, B, lambda_c, tol, level,
         d, X, eta, delta,
+        s, D, K, M,
         wallclock_time_start, cpu_time_start,
         wallclock_time_rr=None, wallclock_time_sle=None,
         K12=None, M12=None,
@@ -270,7 +272,7 @@ def make_stats_tree( \
     normM12 = NP.nan if M12 is None else LA.norm(M12)
 
     n = K.shape[0]
-    n_c = NP.sum(d <= lambda_c)
+    n_c = NP.sum(s*d <= lambda_c)
     n_s = d.size
     nnz_LU = -1 if LU is None else LU.nnz
 
