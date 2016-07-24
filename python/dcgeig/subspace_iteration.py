@@ -21,32 +21,20 @@ import time
 
 
 
-def chebychev(degree, tau, c, e, solve, K, M, X):
-    assert isinstance(tau, numbers.Real)
+def chebychev(degree, c, e, solve, K, M, X):
     assert isinstance(c, numbers.Real)
     assert isinstance(e, numbers.Real)
     assert e > 0
     assert isinstance(degree, int)
     assert degree >= 0
 
-    P0 = X
-    P1 = solve( (M-c*K)*X ) / (tau - c)
+    ks = NP.arange(degree)
+    roots = c + e * NP.cos( (2*ks+1)/(2.0*degree) * NP.pi )
 
-    a0 = e / (tau-c)
-    a1 = a0
+    for k in ks:
+        X = solve( (M-roots[k]*K)*X )
 
-    for k in xrange(degree-1):
-        a2 = 1 / (2.0/a0 - a1)
-        P2 = 2*a2/e * solve( (M-c*K)*P1 ) - a2*a1 * P0
-
-        a1 = a2
-        del a2
-
-        P0 = P1
-        P1 = P2
-        del P2
-
-    return P1
+    return X
 
 
 
@@ -68,7 +56,6 @@ def inverse_iteration( \
     max_d = max(d)
     median_d = NP.median(d)
 
-    tau = 1/min(min_d, lambda_c)
     z = max(min_d, lambda_c)
     a = max(2*z, median_d)
     b = max(max_d, 2*a)
@@ -78,14 +65,13 @@ def inverse_iteration( \
     assert a > 0
     assert b > a
     assert c > 0
-    assert tau > c+e
 
     X = B if overwrite_b else ML.copy(B)
 
     for l in xrange(0, m, block_size):
         r = min(l+block_size, m)
 
-        X[:,l:r] = chebychev(degree, tau, c, e, solve, K, M, X[:,l:r])
+        X[:,l:r] = chebychev(degree, c, e, solve, K, M, X[:,l:r])
 
     return None if overwrite_b else X
 

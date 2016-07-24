@@ -39,10 +39,9 @@ class Test_chebychev(unittest.TestCase):
         u = 1e-3 * X[:,0] + X[:,3:] * NP.ones([n-3,1])
         u = u.astype(dtype)
 
-        tau = 1/ds[0]
         c = (1 + 1/max(ds)) / 2.0
         e = (1 - 1/max(ds)) / 2.0
-        v = SI.chebychev(3, ds[0], c, e, solve, K, M, u)
+        v = SI.chebychev(3, c, e, solve, K, M, u)
         v = v / SL.norm(v)
 
         self.assertTrue( abs(X[:,0].H * v) > 0.9 )
