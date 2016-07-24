@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/multilevel-gep-solver", line 380, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/multilevel-gep-solver", line 349, in main
+    d, X, stats = MS.execute(options, K, M, lambda_c, tol)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 228, in execute
+    rs = map( call_solve_gep, range(l) )
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 224, in call_solve_gep
+    d, X, stats = solve_gep(options, K, M, lambda_c, tol, level)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 144, in solve_gep
+    d2, X2, stats2 = solve_gep(options, K22, M22, lambda_c/s, tol, level+1)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 194, in solve_gep
+    subspace_iteration.execute(options, lambda_c/s, do_stop, LU, K, M, d, X)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/subspace_iteration.py", line 108, in execute
+    inverse_iteration(lambda_c, poly_degree, f, K, M, d, X, overwrite_b=True)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/subspace_iteration.py", line 86, in inverse_iteration
+    X[:,l:r] = chebychev(degree, tau, c, e, solve, K, M, X[:,l:r])
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/subspace_iteration.py", line 33, in chebychev
+    P1 = solve( (M-c*K)*X ) / (tau - c)
+KeyboardInterrupt
