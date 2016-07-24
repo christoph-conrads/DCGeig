@@ -25,6 +25,7 @@ def chebychev(degree, tau, c, e, solve, K, M, X):
     assert isinstance(tau, numbers.Real)
     assert isinstance(c, numbers.Real)
     assert isinstance(e, numbers.Real)
+    assert e > 0
     assert isinstance(degree, int)
     assert degree >= 0
 
@@ -63,12 +64,14 @@ def inverse_iteration( \
 
     m = d.size
 
-    assert min(d) == d[0]
-    assert max(d) == d[-1]
+    min_d = min(d)
+    max_d = max(d)
+    median_d = NP.median(d)
 
-    tau = 1/min(d[0], lambda_c)
-    a = 2*max(d[0], lambda_c)
-    b = max(d[-1], 2*a)
+    tau = 1/min(min_d, lambda_c)
+    z = max(min_d, lambda_c)
+    a = max(2*z, median_d)
+    b = max(max_d, 2*a)
     c = (1/a + 1/b) / 2
     e = (1/a - 1/b) / 2
 

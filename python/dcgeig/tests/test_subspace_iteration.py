@@ -40,8 +40,8 @@ class Test_chebychev(unittest.TestCase):
         u = u.astype(dtype)
 
         tau = 1/ds[0]
-        c = (1/max(ds) + 1) / 2.0
-        e = (1/max(ds) - 1) / 2.0
+        c = (1 + 1/max(ds)) / 2.0
+        e = (1 - 1/max(ds)) / 2.0
         v = SI.chebychev(3, ds[0], c, e, solve, K, M, u)
         v = v / SL.norm(v)
 
