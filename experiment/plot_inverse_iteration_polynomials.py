@@ -87,13 +87,16 @@ def chebychev(degree, c, e, tau, t):
 def main(argv):
     lambda_1 = 0.05;
     lambda_c = 1.0;
-    a = 5.0 * lambda_c;
-    b = 10.0 * lambda_c;
+    a = 10.0 * lambda_c;
+    b = NP.sqrt(2) * 10.0 * lambda_c;
 
     tau = 1/lambda_c
     c, e = get_ellipse(1/b, 1/a)
 
-    xs = NP.linspace(lambda_1, 2*b, num=5000 )
+    left = lambda_1
+    right = 15*lambda_c
+
+    xs = NP.linspace(left, right, num=1000 )
     assert NP.all( xs > 0 )
 
     for k in range(1, 4):
@@ -103,21 +106,23 @@ def main(argv):
         PP.plot(xs, abs(ys), label=fmt.format(k, a, b))
 
 
-    cs = cayley(xs, 10*lambda_c) / cayley(lambda_c, 10*lambda_c)
+    cs = cayley(xs, 11*lambda_c) / cayley(lambda_c, 11*lambda_c)
     PP.plot(xs, abs(cs), label='cayley')
 
     PP.plot(xs, lambda_c/xs, label='inv')
 
     PP.plot( (lambda_c,lambda_c), (0, 1e5), 'k-' )
-    PP.plot( (10*lambda_c,10*lambda_c), (0, 1e5), 'k-' )
+    PP.plot( (a, a), (0, 1e5), 'k-' )
+    PP.plot( (b, b), (0, 1e5), 'k-' )
 
     t = xs >= lambda_c
 
     axes = PP.gca()
-    axes.set_xlim([lambda_1, 12*lambda_c])
+    axes.set_xlim([left, right])
     PP.yscale('log')
 
     PP.legend()
+    PP.grid()
     PP.show()
 
 
