@@ -52,13 +52,9 @@ def inverse_iteration( \
 
     m = d.size
 
-    min_d = min(d)
     max_d = max(d)
-    median_d = NP.median(d)
-
-    z = max(min_d, lambda_c)
-    a = max(2*z, median_d)
-    b = max(max_d, 2*a)
+    a = max_d
+    b = NP.sqrt(2) * max_d
     c = (1/a + 1/b) / 2
     e = (1/a - 1/b) / 2
 
