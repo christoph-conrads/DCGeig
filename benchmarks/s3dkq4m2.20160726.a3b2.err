@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/multilevel-gep-solver", line 380, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/multilevel-gep-solver", line 350, in main
+    eta = EA.compute_backward_error(K, M, d, X)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/error_analysis.py", line 95, in compute_backward_error
+    R[:,t] = KX[:,t] - NP.multiply(MX[:,t], d[t])
+MemoryError
