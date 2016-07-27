@@ -191,7 +191,8 @@ def solve_gep(options, A, B, lambda_c, tol, level):
     LU = LA.splu(K, diag_pivot_thresh=0)
 
     num_iterations, wallclock_time_sle, wallclock_time_rr = \
-        subspace_iteration.execute(options, lambda_c/s, do_stop, LU, K, M, d, X)
+        subspace_iteration.execute( \
+            options, lambda_c/s, do_stop, LU, K, M, d, X, eta, delta)
 
     t = select(d)
     d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)

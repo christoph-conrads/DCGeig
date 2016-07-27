@@ -22,11 +22,11 @@ import time
 
 
 def chebychev(degree, c, e, solve, K, M, X):
+    assert isinstance(degree, int)
+    assert degree >= 0
     assert isinstance(c, numbers.Real)
     assert isinstance(e, numbers.Real)
     assert e > 0
-    assert isinstance(degree, int)
-    assert degree >= 0
 
     ks = NP.arange(degree)
     roots = c + e * NP.cos( (2*ks+1)/(2.0*degree) * NP.pi )
@@ -39,30 +39,32 @@ def chebychev(degree, c, e, solve, K, M, X):
 
 
 def inverse_iteration( \
-        lambda_c, degree, solve, K, M, d, B,
+        lambda_c, degree, solve, K, M, d, B, eta, delta,
         block_size=256, overwrite_b=False):
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
     assert isinstance(degree, int)
+    assert degree > 0
     assert NP.isrealobj(d)
     assert d.size == B.shape[1]
     assert isinstance(block_size, int)
     assert block_size > 0
     assert isinstance(overwrite_b, bool)
 
-    m = d.size
+    X = B if overwrite_b else ML.copy(B)
 
-    max_d = max(d)
-    a = max_d
-    b = NP.sqrt(2) * max_d
+    # compute ellipse
+    a = max(d)
+    b = max(d+delta)
     c = (1/a + 1/b) / 2
     e = (1/a - 1/b) / 2
 
     assert a > 0
     assert b > a
     assert c > 0
+    assert e > 0
 
-    X = B if overwrite_b else ML.copy(B)
+    m = d.size
 
     for l in xrange(0, m, block_size):
         r = min(l+block_size, m)
@@ -73,12 +75,15 @@ def inverse_iteration( \
 
 
 
-def execute(options, lambda_c, do_stop, LU, K, M, d, X):
+def execute(options, lambda_c, do_stop, LU, K, M, d, X, eta, delta):
     assert isinstance(options, tools.Options)
     assert SS.isspmatrix_csc(K)
     assert utils.is_hermitian(K)
     assert SS.isspmatrix(M)
     assert utils.is_hermitian(M)
+    assert d.size == X.shape[1]
+    assert d.size == eta.size
+    assert d.size == delta.size
 
     poly_degree = 2
 
@@ -89,11 +94,12 @@ def execute(options, lambda_c, do_stop, LU, K, M, d, X):
 
     for i in range(1, options.max_num_iterations+1):
         wallclock_time_sle_start = time.time()
-        inverse_iteration(lambda_c, poly_degree, f, K, M, d, X, overwrite_b=True)
+        inverse_iteration( \
+            lambda_c, poly_degree, f, K, M, d, X, eta, delta, overwrite_b=True)
         wallclock_time_sle += time.time() - wallclock_time_sle_start
 
         wallclock_time_rr_start = time.time()
-        d[:], X[:,:], eta, delta = tools.rayleigh_ritz(K, M, X)
+        d[:], X[:,:], eta[:], delta[:] = tools.rayleigh_ritz(K, M, X)
         wallclock_time_rr += time.time() - wallclock_time_rr_start
 
         if do_stop(d, X, eta, delta):
