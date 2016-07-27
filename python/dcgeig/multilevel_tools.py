@@ -72,7 +72,7 @@ def make_eigenpair_selector(options, lambda_c, level):
 
     lambda_s = c_s * lambda_c if level==0 else level * c_s * lambda_c
 
-    def f(d, delta):
+    def f(d):
         n_c = NP.sum(d <= lambda_c)
         m = min(max(n_s_min, 2*n_c), d.size)
 

@@ -124,7 +124,7 @@ def solve_gep(options, A, B, lambda_c, tol, level):
 
         d, X, eta, delta = tools.rayleigh_ritz(K, M)
 
-        t = select(d, delta)
+        t = select(d)
         d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
         return s*d, D*X, make_stats_tree(**locals())
@@ -172,7 +172,7 @@ def solve_gep(options, A, B, lambda_c, tol, level):
 
 
     if do_stop(d, X, eta, delta):
-        t = select(d, delta)
+        t = select(d)
         d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
         return s*d, D*X, make_stats_tree(**locals())
@@ -182,7 +182,7 @@ def solve_gep(options, A, B, lambda_c, tol, level):
         if level == 0:
             d, X, eta, delta = tools.rayleigh_ritz(K, M)
 
-            t = select(d, delta)
+            t = select(d)
             d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
         return s*d, D*X, make_stats_tree(**locals())
@@ -193,7 +193,7 @@ def solve_gep(options, A, B, lambda_c, tol, level):
     num_iterations, wallclock_time_sle, wallclock_time_rr = \
         subspace_iteration.execute(options, lambda_c/s, do_stop, LU, K, M, d, X)
 
-    t = select(d, delta)
+    t = select(d)
     d, X, eta, delta = tools.apply_selection(t, d, X, eta, delta)
 
     return s*d, D*X, make_stats_tree(**locals())

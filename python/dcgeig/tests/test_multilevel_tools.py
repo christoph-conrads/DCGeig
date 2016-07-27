@@ -31,10 +31,9 @@ class Test_make_eigenpair_selector(unittest.TestCase):
         lambda_c = 10
         m = 50
         d = NP.arange(m)
-        delta = NP.zeros(m)
 
         select = tools.make_eigenpair_selector(options, lambda_c, level=1)
-        t = select(d, delta)
+        t = select(d)
 
         self.assertTrue( NP.any(t) )
 
@@ -46,10 +45,9 @@ class Test_make_eigenpair_selector(unittest.TestCase):
         lambda_c = 100
 
         d = NP.arange(101, 150)
-        delta = NP.zeros(d.size)
 
         select = tools.make_eigenpair_selector(options, lambda_c, level=1)
-        t = select(d, delta)
+        t = select(d)
 
         self.assertTrue( NP.all(t[:n_s_min]) )
 
@@ -60,10 +58,9 @@ class Test_make_eigenpair_selector(unittest.TestCase):
         lambda_c = 1.0
 
         d = NP.array([100, float('inf')])
-        delta = NP.zeros(d.size)
 
         select = tools.make_eigenpair_selector(options, lambda_c, level=1)
-        t = select(d, delta)
+        t = select(d)
 
         self.assertTrue( t[0] )
         self.assertFalse( t[1] )
@@ -74,13 +71,12 @@ class Test_make_eigenpair_selector(unittest.TestCase):
         options = self.make_options(2, 32)
         lambda_c = 1.0
         d = NP.arange(n, dtype=NP.float64)
-        delta = NP.ones(d.size)
 
         f = tools.make_eigenpair_selector(options, lambda_c, level=1)
-        t1 = f(d, delta)
+        t1 = f(d)
 
         g = tools.make_eigenpair_selector(options, lambda_c, level=100)
-        t100 = g(d, delta)
+        t100 = g(d)
 
         self.assertTrue( NP.sum(t100) >= NP.sum(t1) )
         self.assertTrue( NP.all( (t1 & t100) == t1 ) )
