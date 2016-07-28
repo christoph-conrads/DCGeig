@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/multilevel-gep-solver", line 378, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/multilevel-gep-solver", line 348, in main
+    d, X, stats = MS.execute(options, K, M, lambda_c, tol)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 229, in execute
+    rs = map( call_solve_gep, range(l) )
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 225, in call_solve_gep
+    d, X, stats = solve_gep(options, K, M, lambda_c, tol, level)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 195, in solve_gep
+    options, lambda_c/s, do_stop, LU, K, M, d, X, eta, delta)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/subspace_iteration.py", line 100, in execute
+    d[:], X[:,:], eta[:], delta[:] = tools.rayleigh_ritz(K, M, X)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_tools.py", line 148, in rayleigh_ritz
+    eta, delta = compute_errors(K, M, d, X)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_tools.py", line 52, in compute_errors
+    eta[l:r] = EA.compute_backward_error(K, M, d[l:r], X[:,l:r])
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/error_analysis.py", line 95, in compute_backward_error
+    R[:,t] = KX[:,t] - NP.multiply(MX[:,t], d[t])
+MemoryError
