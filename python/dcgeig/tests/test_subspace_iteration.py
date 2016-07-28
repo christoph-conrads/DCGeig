@@ -72,10 +72,8 @@ class Test_inverse_iteration(unittest.TestCase):
         b = NP.float32(1e-3) * X[:,0] + X[:,3:] * NP.ones([n-3,1])
         b = b.astype(dtype)
         d = NP.array(b.H * K * b).reshape( (1,) )
-        eta = 0.1
-        delta = 0.1*d
 
-        x = SI.inverse_iteration(lambda_c, degree, solve, K, M, d, b, eta,delta)
+        x = SI.inverse_iteration(lambda_c, degree, solve, K, M, d, b)
         x = x / SL.norm(x)
 
         self.assertTrue( X[:,0].H * x > 0.9 )
@@ -83,7 +81,7 @@ class Test_inverse_iteration(unittest.TestCase):
 
         y = ML.copy(b)
         ret = SI.inverse_iteration( \
-                lambda_c, degree, solve, K, M, d, y,eta,delta, overwrite_b=True)
+                lambda_c, degree, solve, K, M, d, y, overwrite_b=True)
         y = y / SL.norm(y)
 
         self.assertTrue( X[:,0].H * y > 0.9 )

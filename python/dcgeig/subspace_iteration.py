@@ -39,7 +39,7 @@ def chebychev(degree, c, e, solve, K, M, X):
 
 
 def inverse_iteration( \
-        lambda_c, degree, solve, K, M, d, B, eta, delta,
+        lambda_c, degree, solve, K, M, d, B,
         block_size=256, overwrite_b=False):
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
@@ -55,12 +55,10 @@ def inverse_iteration( \
 
     # compute ellipse
     a = max(d)
-    b = max(d+delta)
-    c = (1/a + 1/b) / 2
-    e = (1/a - 1/b) / 2
+    c = (1/a + 0) / 2
+    e = (1/a - 0) / 2
 
     assert a > 0
-    assert b > a
     assert c > 0
     assert e > 0
 
@@ -95,7 +93,7 @@ def execute(options, lambda_c, do_stop, LU, K, M, d, X, eta, delta):
     for i in range(1, options.max_num_iterations+1):
         wallclock_time_sle_start = time.time()
         inverse_iteration( \
-            lambda_c, poly_degree, f, K, M, d, X, eta, delta, overwrite_b=True)
+            lambda_c, poly_degree, f, K, M, d, X, overwrite_b=True)
         wallclock_time_sle += time.time() - wallclock_time_sle_start
 
         wallclock_time_rr_start = time.time()
