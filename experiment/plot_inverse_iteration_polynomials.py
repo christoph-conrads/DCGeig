@@ -94,31 +94,38 @@ def main(argv):
     c, e = get_ellipse(1/b, 1/a)
 
     left = lambda_1
-    right = 15*lambda_c
+    right = 30*lambda_c
 
-    xs = NP.linspace(left, right, num=1000 )
+    x0 = a
+    xs = NP.linspace(left, right, num=1000)
     assert NP.all( xs > 0 )
 
+    chebychev_label='chebychev({:d}, {:.1f}, {:.1f})'
+
     for k in range(1, 4):
-        ys = poly(k, c, e, tau, 1/xs) / poly(k, c, e, tau, 1/lambda_c)
+        ys = poly(k, c, e, tau, 1/xs) / poly(k, c, e, tau, 1/x0)
 
-        fmt='cheb({:d}, {:.1f}, {:.1f})'
-        PP.plot(xs, abs(ys), label=fmt.format(k, a, b))
+        PP.plot(xs, abs(ys), label=chebychev_label.format(k, a, b))
 
 
-    cs = cayley(xs, 11*lambda_c) / cayley(lambda_c, 11*lambda_c)
+    cs = 50 * cayley(xs, a) / cayley(lambda_c, a)
     PP.plot(xs, abs(cs), label='cayley')
 
-    PP.plot(xs, lambda_c/xs, label='inv')
+    PP.plot(xs, x0/xs, label='1/x')
 
-    PP.plot( (lambda_c,lambda_c), (0, 1e5), 'k-' )
-    PP.plot( (a, a), (0, 1e5), 'k-' )
-    PP.plot( (b, b), (0, 1e5), 'k-' )
+    inf = float('inf')
+    c_inf = (1/a + 1/inf) / 2
+    e_inf = (1/a - 1/inf) / 2
+    k = 2
+    zs = C(k, (1/xs - c_inf) / e_inf) / C(k, (1/x0 - c_inf) / e_inf)
+    PP.plot( xs, abs(zs), label=chebychev_label.format(k, a, inf) )
 
-    t = xs >= lambda_c
+    PP.plot( (lambda_c,lambda_c), (0, 1e11), 'k-' )
+    PP.plot( (a, a), (0, 1e11), 'k-' )
 
     axes = PP.gca()
     axes.set_xlim([left, right])
+    axes.set_ylim([1e-3, 1e6])
     PP.yscale('log')
 
     PP.legend()
