@@ -1,7 +1,7 @@
 README
 
 This folder contains the source code of DCGeig, a collection of dense and sparse
-solver for generalized eigenvalue problems with real symmetric positive
+solvers for generalized eigenvalue problems with real symmetric positive
 semidefinite matrices.
 
 DCGeig is based on the source code for the master's thesis "Projection Methods
