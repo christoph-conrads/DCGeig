@@ -47,7 +47,6 @@ def compute_jackson_coefficients(n):
     if n == 0:
         return NP.full_like(xs, 1)
 
-    alpha = NP.pi / (n + 2)
     k = 1.0 * NP.arange(0, n+1)
     r = NP.pi / (n+1)
     cs = (1 - k/(n+1)) * NP.cos(k*r) + NP.sin(k*r) / ((n+1) * NP.tan(r))
