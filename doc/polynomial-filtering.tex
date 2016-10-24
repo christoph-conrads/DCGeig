@@ -1,0 +1,458 @@
+\documentclass[%
+	paper=a4,
+	fontsize=10pt,
+	DIV11,BCOR10mm,
+	numbers=noenddot,
+	abstract=yes
+]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{tgpagella}
+\usepackage{microtype}
+
+
+\usepackage{textcomp}
+\usepackage{gensymb}
+
+
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+
+
+\usepackage{xfrac}
+\usepackage{units}
+
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+
+\usepackage{mathtools}
+\mathtoolsset{showonlyrefs=true}
+
+
+\usepackage{scrhack} % for algorithm package
+\usepackage[boxed]{algorithm}
+\usepackage{algpseudocode}
+
+
+\usepackage[
+	style=alphabetic,
+	bibstyle=alphabetic,
+	maxbibnames=100,
+	giveninits=true,
+	useprefix=true,
+	natbib=true,
+	backend=biber]{biblatex}
+\usepackage[strict=true]{csquotes}
+\addbibresource{references.bib}
+
+
+\usepackage{hyperref}
+\hypersetup{
+	%colorlinks,
+	%citecolor=black,
+	%filecolor=black,
+	%linkcolor=black,
+	%urlcolor=black,
+	pdfauthor={Christoph Conrads},
+	unicode=true,
+}
+
+
+% Make links jump to the beginning of figures and tables, not to the caption in
+% them.
+% This can also be fixed with the caption package.
+\usepackage[all]{hypcap}
+
+
+
+% bibliography with ngerman: @mastersthesis != Magisterarbeit
+\DefineBibliographyStrings{english}{%
+	mathesis = {MSc thesis},
+}
+\DefineBibliographyStrings{ngerman}{%
+	mathesis = {Masterarbeit},
+}
+
+
+
+% Command definitions
+\newcommand{\bigOh}[1]{\mathcal{O}(#1)}
+\newcommand{\cond}[2][]{\kappa_{#1}(#2)}
+\newcommand{\function}[1]{\textsc{#1}}
+\newcommand{\almost}[1]{\widetilde{#1}}
+\newcommand{\set}[1]{\mathcal{#1}}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\F}{\mathbb{C}}
+
+\newcommand{\macheps}{\varepsilon}
+\newcommand{\unitRO}{\mathbf{u}}
+\newcommand{\tol}{\operatorname{tol}}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\ran}{ran}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\mathspan}{span}
+
+
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[section]
+
+\theoremstyle{definition}
+\newtheorem{example}{Example}[section]
+\newtheorem{definition}{Definition}[section]
+
+% \bordermatrix with custom delimiters
+% Source: Herbert Voß: "Math mode - v. 2.47", 2014, §5
+\makeatletter
+\newif\if@borderstar
+\def\bordermatrix{\@ifnextchar*{%
+    \@borderstartrue\@bordermatrix@i}{\@borderstarfalse\@bordermatrix@i*}%
+}
+\def\@bordermatrix@i*{\@ifnextchar[{\@bordermatrix@ii}{\@bordermatrix@ii[()]}}
+\def\@bordermatrix@ii[#1]#2{%
+\begingroup
+  \m@th\@tempdima8.75\p@\setbox\z@\vbox{%
+    \def\cr{\crcr\noalign{\kern 2\p@\global\let\cr\endline }}%
+    \ialign {$##$\hfil\kern 2\p@\kern\@tempdima & \thinspace %
+    \hfil $##$\hfil && \quad\hfil $##$\hfil\crcr\omit\strut %
+    \hfil\crcr\noalign{\kern -\baselineskip}#2\crcr\omit %
+    \strut\cr}}%
+  \setbox\tw@\vbox{\unvcopy\z@\global\setbox\@ne\lastbox}%
+  \setbox\tw@\hbox{\unhbox\@ne\unskip\global\setbox\@ne\lastbox}%
+  \setbox\tw@\hbox{%
+    $\kern\wd\@ne\kern -\@tempdima\left\@firstoftwo#1%
+      \if@borderstar\kern2pt\else\kern -\wd\@ne\fi%
+    \global\setbox\@ne\vbox{\box\@ne\if@borderstar\else\kern 2\p@\fi}%
+    \vcenter{\if@borderstar\else\kern -\ht\@ne\fi%
+      \unvbox\z@\kern-\if@borderstar2\fi\baselineskip}%
+      \if@borderstar\kern-2\@tempdima\kern2\p@\else\,\fi\right\@secondoftwo#1 $%
+  }\null \;\vbox{\kern\ht\@ne\box\tw@}%
+\endgroup
+}
+\makeatother
+
+\newcommand{\mybordermatrix}[1]{\bordermatrix[{[]}]{#1}}
+
+
+
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\algrenewcommand{\algorithmiccomment}[1]{\hskip1em\# #1}
+
+
+
+\newcommand{\propername}[1]{\textsc{#1}}
+
+
+
+
+
+\title{Polynomial Filtering}
+\author{Christoph Conrads {\small \url{https://christoph-conrads.name}}}
+
+
+
+\begin{document}
+
+\maketitle
+
+
+
+\section{Motivation}
+
+DCGeig computes all eigenpairs $(\lambda, x)$, of a generalized eigenvalue
+problem $Kx = \lambda Mx$, where $\lambda \leq \lambda_c$, $\lambda_c > 0$, $K,
+M \in \F^{n,n}$ are Hermitian positive definite (HPD). Assume $K, M$ are
+partitioned conformally into $2 \times 2$ block matrices:
+\[
+	\begin{pmatrix} K_{11} & K_{12} \\ K_{21} & K_{22} \end{pmatrix}
+	x
+	= \lambda \begin{pmatrix} K_{11} & K_{12} \\ K_{21} & K_{22} \end{pmatrix}x.
+\]
+Broadly speaking, DCGeig applies the following procedure recursively:
+\begin{itemize}
+	\item heuristically determine a cutoff value $\lambda_c' > \lambda_c$,
+	\item compute all eigenpairs $(\lambda_i, x_i)$ of the subproblems
+		$K_{ii} x_i = \lambda_i M_{ii} x_i$, $i = 1, 2$, where
+		$\lambda_i \leq \lambda_c'$,
+	\item lift $x_i$, $i = 1, 2$, to $F^n$ and use these lifted vectors as
+		a search space for the exact eigenvectors of $(K, M)$,
+	\item improve the search space,
+	\item compute eigenpairs $(\lambda, x)$ of $(K, M)$,
+	\item select eigenpairs $\lambda \leq \lambda_c$.
+\end{itemize}
+The first problem with this approach is the presence of $\lambda_c'$: it cannot
+be chosen accurately a priori and if $\lambda_c'$ is too large, then the number
+of vectors spanning the search space increases and the solver will be slowed
+down or run out of memory; if $\lambda_c'$ is too small, then the search space
+for the desired eigenvectors of $(K, M)$ shrinks and the solver will be slowed
+down\footnote{Let $s$ be the dimension of the search space and let $\lambda_1
+\leq \lambda_2 \leq \dotsb \leq \lambda_n$. The solver uses subspace iterations
+[SI] to improve the search space and the convergence rate of SI is directly
+related to the ratio $\sfrac{\lambda_c}{\lambda_s}$ - the lower the better
+\cite[§5.2]{Saad2011}. Consequently, if $s$ decreases, then
+$\sfrac{\lambda_c}{\lambda_s}$ increases.} or miss eigenpairs. The second
+problem is the computation of exact (sufficiently accurate) eigenpairs in the
+subproblems because what we want to achieve with the recursion is to find a
+search space that is large enough to accomodate all desired eigenvectors of $(K,
+M)$. Instead, we select the search space based on the eigenvalues $\lambda_i$
+and the heuristically selected value $\lambda_c'$.
+
+A faster method yielding a good search space might work as follows:
+\begin{itemize}
+	\item we compute the number $n_c$ of desired eigenpairs $(\lambda, x)$ of $(K, M)$,
+	\item we choose positive integers $n_1$, $n_2$ such that $n_1+n_2 \geq n_c$,
+		and
+	\item we calculate $n_i$ linearly independent vectors that span the space of
+		eigenvectors $x_i$ corresponding to the smallest eigenvalues of
+		$(K_{ii}, M_{ii})$, $i = 1, 2$.
+\end{itemize}
+The question arises, if there are fast methods for the computation (or
+estimation) of $n_c$ and we can answer the question in the affirmative. Since
+$K$ and $M$ are Hermitian, we can apply Sylvester's law of inertia
+\cite[Theorem~4.5.8]{Golub2012}, compute the $LDL^T$ decomposition of $K -
+\lambda_c M$, and count the number of non-positive diagonal entries to $D$ to
+calculate $n_c$. Algorithms for the sparse $LDL^T$ decomposition are implemented
+in MUMPS\footnote{\url{http://mumps.enseeiht.fr/}},
+PaStiX\footnote{\url{http://pastix.gforge.inria.fr/}},
+SPOOLES\footnote{\url{http://www.netlib.org/linalg/spooles/}},
+SPRAL\footnote{\url{http://www.numerical.rl.ac.uk/spral/}}, and
+TAUCS\footnote{\url{http://www.tau.ac.il/~stoledo/taucs/}} (SPOOLES and TAUCS are
+unmaintained). The major drawback of this approach is the memory consumption due
+to the fill-in.
+
+Alternatively, we can use a combination of random sampling and polynomial
+filtering to estimate $n_c$ and this approach has been thoroughly analyzed in
+\cite{DiNapoli2016}. Rational expansion filtering will not be discussed here
+because the author is more familiar with polynomial filtering, because rational
+filtering seems to be better suited when it is combined with an iterative solver
+(rational filtering requires the factorization of $K - \sigma M$ for different
+shifts $\sigma$), and because we would need software for the factorization of
+indefinite, Hermitian matrices $K - \sigma M$, i.\,e., we would end up computing
+$LDL^T$ decompositions. Rational filtering is already used in practice, e.\,g.,
+see \cite{Polizzi2009}.
+
+
+
+\section{Estimating Eigenvalue Counts}
+
+Let $A \in \F^{n,n}$ with entries $a_{ij}$, $i,j = 1, 2, \dotsc, n$. Throughout
+this text, we assume that $A$ has real eigenvalues.
+
+We need the following theorem about the trace
+\[ \operatorname{tr}(A) = \sum_{i=1}^n a_{ii}. \]
+
+\begin{theorem}[{\cite[§2.4.1]{Horn2012}}]
+	Let $A \in \F^{n,n}$. Then the trace of $A$ is equal to the sum of its
+	eigenvalues:
+	\[ \operatorname{tr}(A) = \sum_{i=1}^n \lambda_i. \]
+\end{theorem}
+
+The concept of projection will be essential for our purposes.
+
+\begin{definition}[{\cite[§0.9.13]{Horn2012}}]
+	Let $P \in \F^{n,n}$. If $P = P^2$, then $P$ is called a \emph{projection}.
+\end{definition}
+
+Depending on the literature, $P$ may also be called a \emph{projector}, e.\,g.,
+in \cite{Polizzi2009}.
+
+\begin{theorem}
+	Let $P \in \F^{n,n}$ be a projection. Then $P$ can only have the eigenvalue
+	zero and one.
+\end{theorem}
+
+\begin{proof}
+	Let $J \in \F^{n,n}$ be the Jordan canonical form of $P$
+	\cite[§3.1]{Horn2012}. Since $P = P^2$, it must hold that $J = J^2$ so $J$
+	is diagonal. Also, since $J = J^2$, all values on the diagonal of $J$ must
+	be one or zero. The diagonal entries of $J$ are the eigenvalues of $P$ and
+	this completes the proof (NB: This solves \cite[3.3P3]{Horn2012} partially.)
+\end{proof}
+
+The identity matrix is a projection whose spectrum contains only ones whereas
+the zero matrix has only the eigenvalue zero. We will now show one way to
+construct projections.
+
+\begin{definition}[Isometric Matrix]
+	Let $Q \in \F^{n,m}$, $m \leq n$, let $I_m$ be the $m \times m$ identity
+	matrix. If $Q^* Q = I_m$, then $Q$ is called \emph{isometric}.
+\end{definition}
+
+$Q$ may also be called \emph{Euclidean isometry}
+\cite[Definition~2.1.5]{Horn2012}. Note that every column subset of a unitary
+matrix forms an isometric matrix.
+
+\begin{theorem}
+	Let $Q \in \F^{n,m}$ be isometric. Then $Q Q^*$ is a projection.
+\end{theorem}
+
+\begin{proof}
+	Let $P = Q Q^*$. It holds that
+	\[ P^2 = Q Q^* Q Q^* = Q I_m Q^* = Q Q^* = P. \]
+\end{proof}
+
+\begin{theorem}
+	Let $Q \in \F^{n,m}$ be isometric. Then the projection $P = Q Q^*$ has the
+	eigenvalue one with algebraic multiplicity $m$ and the eigenvalue zero with
+	algebraic multiplicity $n - m$.
+\end{theorem}
+
+\begin{proof}
+	From $Q^* Q = I_m$, it follows that the columns of $Q$ are orthonormal. Let
+	$Q = [q_1, q_2, \dotsc, q_m]$ be a column-partitioning of $Q$. Then $P = Q
+	Q^*$ can be written as $P = \sum_{i=1}^n q_i q_i^*$. Consequently, $P$ is a
+	Hermitian matrix with rank $m$ and eigenvalues one and zero.
+\end{proof}
+
+\begin{corollary}
+	Let $Q \in \F^{n,m}$ be isometric, let $P = Q Q^*$. Then
+	\[ \operatorname{tr}(P) = m. \]
+\end{corollary}
+
+Now consider that we want to count the number of eigenvalues of a matrix $A \in
+\F^{n,n}$ in the interval~$[a, b]$.
+
+\begin{theorem}[Schur form {\cite[Theorem~2.3.1]{Horn2012}}]
+	Let $A \in \F^{n,n}$ have eigenvalues $\lambda_1, \lambda_2, \dotsc,
+	\lambda_n$ in any prescribed order. Then there is a unitary matrix $U \in
+	\F^{n,n}$ such that $T = U^* A U$ is an upper triangular matrix with
+	diagonal entries $t_{ii} = \lambda_i$, $i = 1, 2, \dotsc, n$. If $A$ is real
+	and has only real eigenvalues, then $U$ and $T$ can be taken to be real.
+\end{theorem}
+
+Let $U = [u_1, u_2, \dotsc, u_n]$ be a column partitioning of $U$. If
+$\lambda_1, \lambda_2, \dotsc, \lambda_m$ are all the eigenvalues of $A$ in the
+interval~$[a, b]$, then $Q \coloneqq [u_1, u_2, \dotsc, u_m]$ is an isometric
+matrix, and $P \coloneqq Q Q^*$ is a projection with trace $m$. Clearly, to
+estimate the number of eigenvalues in~$[a, b]$, we can approximate the trace of
+$P$.
+
+
+
+\section{Approximating An Invariant Subspace Projection}
+
+Previously, we showed that we can count the number of eigenvalues in a given
+interval~$[a, b]$ of a matrix $A$ by computing the trace of a projection onto
+the invariant subspace corresponding to the eigenvalues in~$[a, b]$. In this
+section we discuss how we can compute the projection. Obviously, we can
+calculate the Schur decomposition of a $A$ to acquire $P$ but when we have the
+Schur decomposition, the use of the projection is superfluous. Instead, we can
+approximate the projection with polynomials.
+
+Let $h(t): \R \rightarrow \R$ with
+\[
+	h(t) =
+	\begin{dcases*}
+		1 & if $t \in [a, b]$, \\
+		0 & otherwise.
+	\end{dcases*}
+\]
+If $p(t)$ is polynomial approximation to $h(t)$, then $p(A)$ will be an
+approximation to the desired projection $P$. In this article, we will use
+Chebyshev polynomials.
+
+\begin{definition}[Chebyshev polynomial]
+	The function $T_k: [-1, +1] \rightarrow \R$, where
+	\[
+		T_k(t) =
+		\begin{dcases*}
+			0 & if $k = 0$, \\
+			t & if $k = 1$, \\
+			2 t \, T_{k-1}(t) - T_{k-2}(t) & otherwise,
+		\end{dcases*}
+	\]
+	is called \emph{Chebyshev polynomial} (of the first kind).
+\end{definition}
+
+Chebyshev polynomials are orthogonal polynomials.
+
+\begin{theorem}
+	It holds that
+	\[
+		\int\limits_{-1}^{+1} \frac{T_n(t) T_m(t)}{\sqrt{1 - t^2}}\,\mathrm{d}t=
+		\begin{dcases*}
+			\pi & if $n = m = 0$, \\
+			\sfrac{\pi}{2} & if $n = m \neq 0$, \\
+			0 & if $n \neq m$.
+		\end{dcases*}
+	\]
+\end{theorem}
+
+Let $d$ be the degree of the polynomial approximating $h(t)$. We can approximate
+$h(t)$ with a linear combination of $d$ Chebyshev polynomials such that
+\[ h(t) \approx \sum_{k=0}^d \gamma_k T_k(t), \]
+where $\gamma_k \in \R$. The coefficients can be computed with the following
+expression:
+\[
+	\gamma_k =
+	\int\limits_{-1}^{+1} \frac{h(t) T_k(t)}{\sqrt{1 - t^2}}\,\mathrm{d}t,
+	\, k = 0, 1, \dotsc, d.
+\]
+For the step function $h(t)$, the coefficients are \cite{DiNapoli2016}
+\[
+	\gamma_k =
+	\begin{dcases*}
+		\frac{1}{\pi} (\arccos(a) - \arccos(b)) & if $k = 0$, \\
+		\frac{2}{\pi} \frac{\sin(k \arccos a) - \sin(k \arccos b)}{k} &
+			if $k > 0$.
+	\end{dcases*}
+\]
+Note that the polynomial $T_k$ given above is not normal and this fact was
+incorporated into the coefficients. We can avoid the Gibbs oscillations with the
+following Jackson coefficients \cite[§II.C.3]{Weisse2006}:
+\[
+	g_k^d =
+	\frac{1}{d+1}
+	\left[
+		(d - k + 1) \cos\left(k \frac{\pi}{d+1}\right) +
+		\sin\left(k \frac{\pi}{d+1}\right) \cot\left(k \frac{\pi}{d+1}\right)
+	\right], \, k = 0, 1, \dotsc, d.
+\]
+With these coefficients the approximating polynomial $p(t)$ is
+\[ p(t) = \sum_{k=1}^d g_k^d \gamma_k T_k(t). \]
+In Figure~\ref{fig:chebyshev-vs-jackson}, we plotted the Chebyshev and the
+Chebyshev-Jackson approximations to the step function $h(t)$ with $a = -0.5$, $b
+= +0.5$ with polynomials of degree 50 (cf.~\cite[Fig.~1]{DiNapoli2016}).
+
+\begin{figure}
+	\begin{center}
+		\includegraphics{chebyshev-vs-jackson}
+	\end{center}
+	\caption{Approximation of the step function $h(t)$ ($a = -0.5$, $b =
+		+0.5$) with a Chebyshev and a Chebyshev-Jackson polynomial of
+	degree~50}
+	\label{fig:chebyshev-vs-jackson}
+\end{figure}
+
+In order to approximate the desired projection, we have to compute
+\[ P \approx \sum_{k=1}^d g_k^d \gamma_k T_k(A). \]
+
+
+
+\section{Estimating the Matrix Trace}
+
+So far, we found out that we can approximate the number of eigenvalues in an
+interval~$[a, b]$ of a matrix with real eigenvalues $A$ by calculating the trace
+of a suitable projection $P$. Also, we determined how to approximate $P$ by
+means of a matrix polynomial. $P$ and $A$ are both $n \times n$ matrices so if
+$n$ is large, we would like to avoid the construction of $P$ (or an
+approximation thereof). In this section, we discuss methods to estimate
+$\operatorname{tr}(P)$.
+
+
+
+\printbibliography
+
+\end{document}

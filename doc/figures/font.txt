@@ -1,0 +1,2 @@
+\usepackage{tgpagella}
+\usepackage{microtype}
