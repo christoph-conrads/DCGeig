@@ -222,13 +222,15 @@ def execute(options, A, B, lambda_c, tol, level=0):
         K = A[:,t][t,:]
         M = B[:,t][t,:]
 
-        d, X, stats = solve_gep(options, K, M, lambda_c, tol, level)
+        K = K + lambda_c * M
+
+        d, X, stats = solve_gep(options, K, M, 2*lambda_c, tol, level)
 
         return d, X, stats
 
     rs = map( call_solve_gep, range(l) )
 
-    d = NP.concatenate( map(lambda t: t[0], rs) )
+    d = NP.concatenate( map(lambda t: t[0], rs) ) - lambda_c
     xs = map(lambda t: t[1], rs)
     stats = map(lambda t: t[2], rs)
 

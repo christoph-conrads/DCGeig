@@ -11,6 +11,7 @@ import dcgeig.multilevel_tools as tools
 
 import numpy as NP
 import numpy.matlib as ML
+import numpy.polynomial.chebyshev as NPC
 
 import scipy.linalg as SL
 import scipy.sparse as SS
@@ -21,20 +22,51 @@ import time
 
 
 
-def chebychev(degree, c, e, solve, K, M, X):
-    assert isinstance(degree, int)
-    assert degree >= 0
-    assert isinstance(c, numbers.Real)
-    assert isinstance(e, numbers.Real)
-    assert e > 0
+def compute_jackson_coefficients(d):
+    assert isinstance(d, int)
+    assert d >= 0
 
-    ks = NP.arange(degree)
-    roots = c + e * NP.cos( (2*ks+1)/(2.0*degree) * NP.pi )
+    if d == 0:
+        return NP.full(1, 1.0)
 
-    for k in ks:
-        X = solve( (M-roots[k]*K)*X )
+    k = 1.0 * NP.arange(0, d+1)
+    r = NP.pi / (d+1)
+    cs = (d+1-k) * NP.cos(k*r) + NP.sin(k*r) / NP.tan(r)
+    cs[-1] = 0
 
-    return X
+    assert cs.size == d+1
+
+    return cs / (d+1)
+
+
+
+def compute_chebyshev_heaviside_coefficients(d):
+    assert isinstance(d, int)
+    assert d >= 0
+
+    k = 1.0 * NP.arange(1, d+1)
+    cs = NP.full(d+1, NP.nan)
+    cs[0] = 0.5
+    cs[1::4] = 1.0
+    cs[2::4] = 0.0
+    cs[3::4] = -1.0
+    cs[4::4] = 0.0
+    cs[1:] = cs[1:] * 2/(NP.pi * k)
+
+    return NPC.chebtrim(cs)
+
+
+
+def evaluate_matrix_polynomial(ps, s, solve, K, M, X):
+    assert isinstance(ps, NP.ndarray)
+
+    d = len(ps)-1
+    V = ps[d] * X
+
+    for i in range(d-1, -1, -1):
+        V = ps[i] * X + solve( (s*M-K)*V )
+
+    return V
 
 
 
@@ -53,21 +85,18 @@ def inverse_iteration( \
 
     X = B if overwrite_b else ML.copy(B)
 
-    # compute ellipse
-    a = max(d)
-    c = (1/a + 0) / 2
-    e = (1/a - 0) / 2
-
-    assert a > 0
-    assert c > 0
-    assert e > 0
+    degree = 7
+    js = compute_jackson_coefficients(degree)
+    cs = compute_chebyshev_heaviside_coefficients(degree)
+    ps = NPC.cheb2poly( NPC.chebtrim(cs * js) )
 
     m = d.size
 
     for l in xrange(0, m, block_size):
         r = min(l+block_size, m)
 
-        X[:,l:r] = chebychev(degree, c, e, solve, K, M, X[:,l:r])
+        X[:,l:r] = \
+            evaluate_matrix_polynomial(ps, 2*max(d), solve, K, M, X[:,l:r])
 
     return None if overwrite_b else X
 
