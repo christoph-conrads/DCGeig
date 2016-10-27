@@ -1,0 +1,17 @@
+benchmark multilevel-gep-solver
+git commit 0bf859b4ce5fe2e2083a290b61f21bb6c1913dcb
+hostname theta
+cpu model AMD Athlon(tm) II X2 270 Processor
+2016-10-27T01:00+0200
+bcsstk17.mtx       1.00e+02  10974  518 1.66e-14 4.47e-06    20.8     36.1
+bcsstk18.mtx       2.00e+01  11948  951 1.33e-17 4.98e-06    47.2     82.9
+bcsstk25.mtx       1.00e+02  15439  929 4.14e-13 3.38e-01   302.5    550.6
+gyro_k.mtx         1.00e+15  17361  431 9.87e-11 4.71e-03   833.9   1484.8
+bcsstk36.mtx       1.00e+06  23052 1073 6.55e-13 8.49e-04  1434.2   2649.1
+vanbody.mtx        2.00e+01  47072 1263 4.29e-11 2.13e+04  1374.2   2471.0
+~/matrices/ct20stif.mtx 6e3 error
+~/matrices/s3dkq4m2.mtx 1e-5 error
+~/matrices/ship_003.mtx 1e3 error
+~/matrices/bmw7st_1.mtx 1e-1 error
+bmwcra_1.mtx       1.00e+03 148770   39 7.58e-12 5.68e-03  3273.0   5708.7
+pwtk.mtx           1.00e-02 217918   49 3.27e-17 1.01e-05   971.0   1652.5

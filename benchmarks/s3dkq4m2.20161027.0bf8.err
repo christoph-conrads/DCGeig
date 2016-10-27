@@ -1,0 +1,22 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/multilevel-gep-solver", line 378, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/multilevel-gep-solver", line 348, in main
+    d, X, stats = MS.execute(options, K, M, lambda_c, tol)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 231, in execute
+    rs = map( call_solve_gep, range(l) )
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 227, in call_solve_gep
+    d, X, stats = solve_gep(options, K, M, 2*lambda_c, tol, level)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 143, in solve_gep
+    d1, X1, stats1 = solve_gep(options, K11, M11, lambda_c/s, tol, level+1)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_solver.py", line 195, in solve_gep
+    options, lambda_c/s, do_stop, LU, K, M, d, X, eta, delta)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/subspace_iteration.py", line 129, in execute
+    d[:], X[:,:], eta[:], delta[:] = tools.rayleigh_ritz(K, M, X)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/multilevel_tools.py", line 130, in rayleigh_ritz
+    Q, _ = scipy.linalg.qr(S, mode='economic')
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/linalg/decomp_qr.py", line 141, in qr
+    overwrite_a=overwrite_a)
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/linalg/decomp_qr.py", line 21, in safecall
+    ret = f(*args, **kwargs)
+MemoryError
