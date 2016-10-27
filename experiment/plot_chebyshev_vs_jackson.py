@@ -29,6 +29,16 @@ def compute_jackson_coefficients(d):
 
 
 
+def compute_chebyshev_roots(d):
+    assert isinstance(d, int)
+    assert d >= 0
+
+    k = 1.0 * NP.arange(1, d+1)
+    rs = NP.cos( (2*k-1)/(2*d) * NP.pi )
+
+    return rs
+
+
 
 def make_step_function(a, b):
     assert isinstance(a, numbers.Real)
@@ -53,12 +63,13 @@ def make_step_function(a, b):
 
 def main(argv):
     h = make_step_function(-0.5, +0.5)
-    n = 1000
-    xs = NP.linspace(-1, +1, n)
-    ys = h(xs)
-
     d = 50
-    pc = NPC.chebfit(xs, ys, d)
+    n = 1000
+
+    xs = NP.linspace(-1, +1, n)
+    rs = compute_chebyshev_roots(n)
+
+    pc = NPC.chebfit(rs, h(rs), d)
     pj = pc * compute_jackson_coefficients(d)
 
     fc = lambda xs: NPC.chebval(xs, pc)
