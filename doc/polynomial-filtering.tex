@@ -342,6 +342,7 @@ $P$.
 
 
 \section{Approximating An Invariant Subspace Projection}
+\label{sec:projection-approximation}
 
 Previously, we showed that we can count the number of eigenvalues in a given
 interval~$[a, b]$ of a matrix $A$ by computing the trace of a projection onto
@@ -442,6 +443,7 @@ In order to approximate the desired projection, we have to compute
 
 
 \section{Estimating the Matrix Trace}
+\label{sec:estimating-matrix-trace}
 
 So far, we found out that we can approximate the number of eigenvalues in an
 interval~$[a, b]$ of a matrix with real eigenvalues $A$ by calculating the trace
@@ -519,6 +521,82 @@ great convergence properties for projections because all eigenvalues are either
 zero or one \cite{Saibaba2016}. This method cannot be used here because we would
 need to know the algebraic multiplicity of the eigenvalue one in advance but
 this is the quantity that we actually want to determine.
+
+
+
+\section{Estimating Eigenvalue Counts for Generalized Eigenvalue Problems}
+
+From the previous sections, we know how to estimate the number of eigenvalues in
+the interval $[a, b]$ of a matrix $A$ with real eigenvalues, $-1 \leq a < b \leq
++1$. In this section, we will extend these methods to a Hermitian matrix pencil
+$(K, M)$ with arbitrary real non-negative eigenvalues. Also, we will incorporate
+the multilevel structure of the DCGeig generalized eigenvalue problem solver.
+
+Let $K, M \in \F^{n,n}$, where $K$ is Hermitian positive definite and $M$ is
+Hermitian positive semidefinite. Since $M$ may be singular, we will consider
+eigenvalue counts based on $A \coloneqq K^{-1} M$ and with this provision, we
+can we can explain how to count eigenvalues. Let $\mu_1 \geq \mu_2 \geq \dotsb
+\geq \mu_n \geq 0$ be the eigenvalues of $M x = \mu K x$. In order to count
+eigenvalues in the interval $[a, b]$, we have to transform the spectrum of $(M,
+K)$ such that the transformed eigenvalues are in $[-1, +1]$. For the generalized
+eigenvalue problem $(K, M)$, we are interested in the eigenvalues $\lambda \leq
+\lambda_c$ or equivalently, the largest eigenvalues of $(M, K)$. Therefore, $a =
+1/\lambda_c$, $b = \mu_1$. Furthermore, all eigenvalues are non-negative so we
+can simply assume $\mu_n = 0$ and with this assumption, we do not have to
+compute (or approximate) $\mu_n$. Thus, let
+\[ c = \frac{\mu_1}{2}, e = \frac{2}{\mu_1}, \]
+then the matrix pencil $(\sfrac{1}{e} (M-c), \sfrac{1}{e} K)$ has only
+eigenvalues in $[-1, +1]$ and we want to count the number of eigenvalues of this
+matrix pencil in $[\sfrac{a-c}{e}, 1]$. Observe that the right-hand of the
+interval is one. This means, the filter polynomial only has to approximate the
+the heaviside function and we can use lower-degree polynomial. The coefficients
+for the filter polynomial can be found in
+Section~\ref{sec:projection-approximation} and with the techniques from
+Section~\ref{sec:estimating-matrix-trace} we can estimate the number of
+eigenvalues $\lambda \leq \lambda_c$ as soon as we acquired a good estimate of
+the smallest eigenvalue of $(K, M)$.
+
+Reconsider the $2 \times 2$ block partitioning of $(K, M)$:
+\[
+	\begin{pmatrix} K_{11} & K_{12} \\ K_{21} & K_{22} \end{pmatrix}
+	x
+	= \lambda \begin{pmatrix} K_{11} & K_{12} \\ K_{21} & K_{22} \end{pmatrix}x.
+\]
+Let $n_c$ be the number of eigenvalues $\lambda \leq \lambda_c$, let $Q_i$, $i =
+1, 2$, be isometric matrices such that $Q_i^* K Q_i = K_{ii}$, $Q_i^* M Q_i =
+M_{ii}$, and let $X_c \in \F^{n,n_c}$ be the matrix of eigenvectors
+corresponding to eigenvalues $\lambda \leq \lambda_c$. DCGeig is a multilevel
+eigensolver; it computes recursively approximations to $X_c$. Consequently, we
+are not only interested in the value $n_c$ but also in the size of the search
+spaces calculated by $(K_{11}, M_{11})$, $(K_{22}, M_{22})$, i.\,e., the rank of
+$Q_i^* X_c$, $i = 1, 2$. We can approximate these quantities with previously
+computed projection $P$.
+
+\begin{theorem}
+	It holds that
+	\[ \rank(Q_i^* X_c) = \rank(Q_i^* P), \, i = 1, 2. \]
+\end{theorem}
+
+\begin{proof}
+	It holds that $\ran X_c = \ran P$. $Q_i$ has full column rank so
+	consequently,
+	\[ \ran(Q_i^* X_c) = \ran(Q_i^* P). \]
+	Since $\rank A = \dim \ran A$, $A \in \F^{m,n}$, we have
+	\[ \rank(Q_i^* X_c) = \rank(Q_i^* P). \]
+\end{proof}
+
+We can use this theorem to apply the methods of
+Section~\ref{sec:estimating-matrix-trace} to estimate $\rank(Q_i^* X_c)$. Let
+$n_i \in \mathbb{N}$, $i = 1, 2$, such that $Q_i \in \F^{n,n_i}$, and let $v_i
+\in \F^{n_i}$. Then
+\begin{align*}
+	\rank P &\approx v^* p(K^{-1} M) v, \\
+	\rank(Q_i^* P) &\approx v_i^* Q_i^* p(K^{-1} M) Q_i v_i, \, i = 1, 2.
+\end{align*}
+
+In any case, we have to compute $p(K^{-1} M)$ (instead of, say, $p(K_{ii}^{-1}
+M_{ii})$) but on the upside, $n_c = n_1 + n_2$ so estimating $n_c$ is
+superfluous after we estimated $n_1$, $n_2$.
 
 \printbibliography
 
