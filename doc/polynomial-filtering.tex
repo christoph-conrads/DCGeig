@@ -503,7 +503,16 @@ Furthermore, the following important theorem holds if $A$ is a projection.
 
 In practice, the bounds can be very pessimistic and the difference between
 $T_m^G(A)$ and $T_m^H(A)$ is small in the experiments in
-\cite[§5]{Roosta-Khorasani2015}, \cite[§9]{Avron2011}.
+\cite[§5]{Roosta-Khorasani2015}, \cite[§9]{Avron2011}. To determine $m$, we can
+compute Gaussian statistics (mean, variance) at run-time and increase $m$ until
+the variance is sufficiently small. Let $\mu_k$, $\sigma_k$ be mean and standard
+deviation of values $x_1, x_2, \dotsc, x_k$. Then it holds that
+\begin{align*}
+	\mu_{k+1} &= \frac{k}{k+1} \mu_k + x_{k+1}, \\
+	\sigma_{k+1}^2 &=
+		\frac{k (\sigma_k^2 + \mu_k^2) + x_{k+1}^2}{k+1} - \mu_{k+1}^2,
+\end{align*}
+where $\mu_1 = x_1$, $\sigma_1 = 0$.
 
 There is also a Monte Carlo method based on subspace iterations that possesses
 great convergence properties for projections because all eigenvalues are either
