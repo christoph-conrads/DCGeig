@@ -448,10 +448,68 @@ interval~$[a, b]$ of a matrix with real eigenvalues $A$ by calculating the trace
 of a suitable projection $P$. Also, we determined how to approximate $P$ by
 means of a matrix polynomial. $P$ and $A$ are both $n \times n$ matrices so if
 $n$ is large, we would like to avoid the construction of $P$ (or an
-approximation thereof). In this section, we discuss methods to estimate
-$\operatorname{tr}(P)$.
+approximation thereof). In this section, we discuss matrix-free trace
+estimators.
 
+In general, we can compute estimates of the trace by Monte Carlo methods,
+i.\,e., by calculating $v^* A v$, where $v \in \F^n$ is random. Naturally, we
+can get a more accurate guess by averaging over $m$ random vectors such that
+$T_m(A) \coloneqq \sfrac{1}{m} \sum_{i=1}^m v_i^* A v_i$. Ideally, $T_m(A)$ is
+unbiased, has low variance, and is an $(\varepsilon, \delta)$-approximator:
+given $\varepsilon > 0$, $0 < \delta \leq 1$, the probability that the relative
+error of $T_m(A)$ is greater than $\varepsilon$ is smaller than $\delta$ or
+equivalently,
+\[
+	\mathbb{P}(
+		\abs{T_m(A) - \operatorname{tr}(A)} \leq
+		\varepsilon \operatorname{tr}(A) )
+	\geq 1 - \delta,
+\]
+where $\mathbb{P}(X)$ denotes the probability of an event $X$.
 
+There are several popular distributions for the trial vectors or the entries of
+the trial vectors, respectively (see, e.\,g., \cite[§3]{Avron2011}). In this
+paper, we will focus on trial vectors with entries from the Rademacher
+distribution (values $-1$ or $+1$ with probability $\sfrac{1}{2}$) or the
+Gaussian distribution (with mean zero). For both distributions, $T_m(A)$ is
+unbiased, the variance is known, and $T_m(A)$ will be an $(\varepsilon,
+\delta)$-approximator. With Rademacher random variables, $T_m(A)$ is known as
+\emph{Hutchinson estimator} \cite{Hutchinson1990}. Hence, we will denote this
+estimator with $T_m^H(A)$ henceforth. For a single sample, the variance is
+\[
+	\mathbb{V}(T_1^H(A)) =
+	2 \left( \norm{A}_F^2 - \sum_{i=1}^n a_{ii}^2 \right),
+\]
+where $\mathbb{V}(X)$ is the variance of the randomly distributed variable $X$.
+For fixed $\varepsilon$ and $\delta$, the Hutchinson estimator is an
+$(\varepsilon, \delta)$-estimator if
+\[ m \geq 6 \frac{1}{\varepsilon^2} \ln \frac{2}{\delta}. \]
+For the Gaussian distribution with mean zero, we denote the corresponding
+estimator with $T_m^G(A)$. The variance of a single sample is
+\[ \mathbb{V}(T_1^G(A)) = 2 \norm{A}_F^2 \]
+and $T_m^G(A)$ is an $(\varepsilon, \delta)$-estimator if
+\[ m \geq 8 \frac{1}{\varepsilon^2} \ln \frac{2}{\delta}. \]
+(See \cite[Table~1]{Avron2011} for the variance, \cite{Roosta-Khorasani2015} for
+the $(\varepsilon, \delta)$-estimator bounds.)
+Furthermore, the following important theorem holds if $A$ is a projection.
+
+\begin{theorem}[{\cite[Corollary~4]{Roosta-Khorasani2015}}]
+	Let $P \in \F^{n,n}$ be a non-zero projection, let $[\cdot]$ denote the
+	nearest integer function, and let $0 < \delta \leq 1$. If
+	\[ m \geq 8 \rank(P) \ln \frac{2}{\delta}, \]
+	then
+	\[ \mathbb{P}\left( [T_m^G(P)] \neq \rank(P) \right) \leq \delta. \]
+\end{theorem}
+
+In practice, the bounds can be very pessimistic and the difference between
+$T_m^G(A)$ and $T_m^H(A)$ is small in the experiments in
+\cite[§5]{Roosta-Khorasani2015}, \cite[§9]{Avron2011}.
+
+There is also a Monte Carlo method based on subspace iterations that possesses
+great convergence properties for projections because all eigenvalues are either
+zero or one \cite{Saibaba2016}. This method cannot be used here because we would
+need to know the algebraic multiplicity of the eigenvalue one in advance but
+this is the quantity that we actually want to determine.
 
 \printbibliography
 
