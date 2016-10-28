@@ -452,35 +452,31 @@ We will examine the coefficients $g_k^d$ and $\gamma_k$ now.
 	\end{align*}
 	and
 	\[
-		\gamma_{2k-1} =
-		\begin{dcases*}
-			+1 & if $k$ is odd, \\
-			-1 & if $k$ is even,
-		\end{dcases*}
+		\gamma_{2k-1} = (-1)^{k+1} \frac{2}{\pi} \frac{1}{2k - 1},
 	\]
 	where $k = 1, 2, \dotso$.
 \end{theorem}
 
-The step function with $a = 0$ and $b = 1$ is know as the \emph{Heaviside
-function}.
+The step function with $a = 0$ and $b = 1$ is the Heaviside function.
 
 \begin{proof}
 	It holds that $\arccos a = \sfrac{\pi}{2}$, $\arccos b = 0$. Thus, $\gamma_0
 	= \sfrac{1}{2}$. For $k > 0$,
 	\[ \gamma_k = \frac{2}{\pi} \frac{1}{k} \sin\left(k \frac{\pi}{2}\right). \]
-	Using the facts that $\sin(0) = 0$, $\sin(\pi) = 0$, $\sin(\sfrac{1}{2} \pi)
-	= +1$, and $\sin(\sfrac{3}{2} \pi) = -1$ \cite[§4.3.46]{AbramowitzStegun} as
-	well as the fact that the sine function has periodicity $2\pi$
-	\cite[§4.3.7]{AbramowitzStegun} completes the proof.
+	Using the facts that $\sin(0) = 0$, $\sin(\pi) = 0$, $\sin(\sfrac{1}{2} \,
+	\pi) = +1$, and $\sin(\sfrac{3}{2} \, \pi) = -1$
+	\cite[§4.3.46]{AbramowitzStegun} as well as the fact that the sine function
+	has periodicity $2\pi$ \cite[§4.3.7]{AbramowitzStegun} completes the proof.
 \end{proof}
 
 The Theorem implies that there are two unique Chebyshev polynomial
 approximations to the Heaviside function with degree $2k-1$ and one of them will
-be better. The following theorem shows that the use of Jackson coefficients
-reduces the polynomial degree by one. In combination with the preceeding
-Theorem~\ref{thm:chebyshev-heaviside-coefficients} and given a polynomial degree
-$d$, the use of Jackson coefficients may reduce the polynomial degree by two
-without affecting its convergence properties.
+have a smaller mean square error. The following theorem shows that the use of
+Jackson coefficients reduces the polynomial degree by one. In combination with
+the preceeding Theorem~\ref{thm:chebyshev-heaviside-coefficients} and given a
+polynomial degree $d$, the use of Jackson coefficients may reduce the degree of
+a Chebyshev polynomial approximation to the Heaviside function by two without
+affecting its convergence properties.
 
 \begin{theorem}
 	$g_0^d = 1$. For $d > 0$, $g_d^d = 0$.
