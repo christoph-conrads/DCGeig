@@ -405,7 +405,7 @@ For the step function $h(t)$, the coefficients are \cite{DiNapoli2016}
 \[
 	\gamma_k =
 	\begin{dcases*}
-		\frac{1}{\pi} (\arccos(a) - \arccos(b)) & if $k = 0$, \\
+		\frac{1}{\pi} (\arccos a  - \arccos b) & if $k = 0$, \\
 		\frac{2}{\pi} \frac{\sin(k \arccos a) - \sin(k \arccos b)}{k} &
 			if $k > 0$.
 	\end{dcases*}
@@ -413,14 +413,15 @@ For the step function $h(t)$, the coefficients are \cite{DiNapoli2016}
 Note that the polynomial $T_k$ given above is not normal and this fact was
 incorporated into the coefficients. We can avoid the Gibbs oscillations with the
 following Jackson coefficients \cite[§II.C.3]{Weisse2006}:
-\[
+\begin{equation}
+\label{eq:jackson-coefficients}
 	g_k^d =
 	\frac{1}{d+1}
 	\left[
 		(d - k + 1) \cos\left(k \frac{\pi}{d+1}\right) +
 		\sin\left(k \frac{\pi}{d+1}\right) \cot\left(\frac{\pi}{d+1}\right)
 	\right], \, k = 0, 1, \dotsc, d.
-\]
+\end{equation}
 With these coefficients the approximating polynomial $p(t)$ is
 \[ p(t) = \sum_{k=1}^d g_k^d \gamma_k T_k(t). \]
 In Figure~\ref{fig:chebyshev-vs-jackson}, we plotted the Chebyshev and the
@@ -439,6 +440,85 @@ Chebyshev-Jackson approximations to the step function $h(t)$ with $a = -0.5$, $b
 
 In order to approximate the desired projection, we have to compute
 \[ P \approx \sum_{k=1}^d g_k^d \gamma_k T_k(A). \]
+
+We will examine the coefficients $g_k^d$ and $\gamma_k$ now.
+
+\begin{theorem}
+	\label{thm:chebyshev-heaviside-coefficients}
+	If $a = 0$, $b = 1$, then
+	\begin{align*}
+		\gamma_0 &= \sfrac{1}{2}, \\
+		\gamma_{2k} &= 0,
+	\end{align*}
+	and
+	\[
+		\gamma_{2k-1} =
+		\begin{dcases*}
+			+1 & if $k$ is odd, \\
+			-1 & if $k$ is even,
+		\end{dcases*}
+	\]
+	where $k = 1, 2, \dotso$.
+\end{theorem}
+
+The step function with $a = 0$ and $b = 1$ is know as the \emph{Heaviside
+function}.
+
+\begin{proof}
+	It holds that $\arccos a = \sfrac{\pi}{2}$, $\arccos b = 0$. Thus, $\gamma_0
+	= \sfrac{1}{2}$. For $k > 0$,
+	\[ \gamma_k = \frac{2}{\pi} \frac{1}{k} \sin\left(k \frac{\pi}{2}\right). \]
+	Using the facts that $\sin(0) = 0$, $\sin(\pi) = 0$, $\sin(\sfrac{1}{2} \pi)
+	= +1$, and $\sin(\sfrac{3}{2} \pi) = -1$ \cite[§4.3.46]{AbramowitzStegun} as
+	well as the fact that the sine function has periodicity $2\pi$
+	\cite[§4.3.7]{AbramowitzStegun} completes the proof.
+\end{proof}
+
+The Theorem implies that there are two unique Chebyshev polynomial
+approximations to the Heaviside function with degree $2k-1$ and one of them will
+be better. The following theorem shows that the use of Jackson coefficients
+reduces the polynomial degree by one. In combination with the preceeding
+Theorem~\ref{thm:chebyshev-heaviside-coefficients} and given a polynomial degree
+$d$, the use of Jackson coefficients may reduce the polynomial degree by two
+without affecting its convergence properties.
+
+\begin{theorem}
+	$g_0^d = 1$. For $d > 0$, $g_d^d = 0$.
+\end{theorem}
+
+\begin{proof}
+	$g_0^d$ can be easily seen to be one by substituting $k = 0$ into
+	Equation~\eqref{eq:jackson-coefficients}. Let us examine the Jackson
+	coefficient $g_d^d$ in detail:
+	\[
+		g_d^d \sim
+			\cos\left(d\frac{\pi}{d+1}\right) +
+			\sin\left(d\frac{\pi}{d+1}\right) \cot \left(\frac{\pi}{d+1}\right).
+	\]
+	From a sine graph, we can gather that
+	\[
+		\sin \left(d \frac{\pi}{d+1}\right)
+		= -\sin \left((d+2) \frac{\pi}{d+1}\right).
+	\]
+	Moreover, $\sin(\pi + \alpha) = -\sin(\alpha)$
+	\cite[§4.3.44]{AbramowitzStegun} so
+	\[
+		-\sin \left( (d+2) \frac{\pi}{d+1} \right)
+		= \sin \left( (d+2) \frac{\pi}{d+1} \right).
+	\]
+	The previous two steps can be squashed into one by considering $\sin(\pi -
+	\alpha) = \sin(\alpha)$. Our approach is more pedagogical. Substituting this
+	result into the expression for $g_d^d$ gives
+	\[
+		g_d^d \sim
+			\cos \left(d \frac{\pi}{d+1}\right) +
+			\sin \left(\frac{\pi}{d+1}\right) \cot \left(\frac{\pi}{d+1}\right)
+		= \cos\left(d\frac{\pi}{d+1}\right) + \cos\left(\frac{\pi}{d+1}\right).
+	\]
+	Exploiting the fact that $\cos(\pi - \alpha) = -\cos(\alpha)$
+	\cite[§4.3.44]{AbramowitzStegun}, we find that
+	\[ g_d^d = 0. \]
+\end{proof}
 
 
 
