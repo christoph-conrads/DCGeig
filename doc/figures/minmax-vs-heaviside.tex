@@ -1,0 +1,40 @@
+\documentclass{standalone}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\input{font.txt}
+
+\usepackage{textcomp}
+\usepackage{gensymb}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.11}
+
+\usepackage{xfrac}
+\usepackage{amsmath}
+\usepackage{mathtools}
+
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+
+
+\begin{document}
+\begin{tikzpicture}
+	\begin{semilogyaxis}[
+			width=400pt,
+			xlabel={$t$},
+			ylabel={$\abs*{p\left(\frac{\sfrac{1}{t}-c}{e}\right)}$},
+			xmin=0,xmax=150,
+			grid=major,
+			legend cell align=left,
+		]
+		\addplot[mark=none, color=blue, thick]
+		table [x=x, y=min-max] {minmax-vs-heaviside.data};
+		\addlegendentry{Min-Max Chebyshev}
+
+		\addplot[mark=none, color=green, very thick, dashed]
+		table [x=x, y=heaviside] {minmax-vs-heaviside.data};
+		\addlegendentry{Heaviside Chebyshev}
+	\end{semilogyaxis}
+\end{tikzpicture}
+\end{document}
