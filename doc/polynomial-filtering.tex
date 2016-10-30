@@ -726,6 +726,120 @@ In any case, we have to compute $p(K^{-1} M)$ (instead of, say, $p(K_{ii}^{-1}
 M_{ii})$) but on the upside, $n_c = n_1 + n_2$ so estimating $n_c$ is
 superfluous after we estimated $n_1$, $n_2$.
 
+
+
+\section{Chebyshev Subspace Iteration}
+
+Hitherto, we used polynomial filters for eigenvalue counting. In this section we
+will use polynomial filtering to speed up subspace iterations
+\cite[§5]{Saad2011}.
+
+Given a matrix $A \in \F^{n,n}$, we can use the following min-max property of
+the Chebyshev polynomial to speed up linear system or eigensolvers and this
+technique is featured prominently in the existing literature (cf.
+\cite[§7]{Saad2011}, \cite[§11.2.8]{Golub2012}).
+
+\begin{theorem}[{\cite[Theorem~4.8]{Saad2011}}]
+	Let $\alpha < \beta$, let $\gamma \not\in [\alpha, \beta]$. Let $c =
+	\sfrac{1}{2} (\alpha + \beta)$, let $e = \sfrac{1}{2}(\beta - \alpha)$. Let
+	$\mathbb{P}_k$ denote the set of all polynomials of degree $k$. Then the
+	polynomial
+	\[
+		p_k^*(t) \coloneqq \frac%
+			{T_k \left(\frac{t-c}{e}\right)}
+			{T_k \left(\frac{\gamma-c}{e}\right)}
+	\]
+	is a solution of
+	\[
+		\min_{\substack{p \in \mathbb{P}_k \\ p(\gamma) = 1}}
+		\max_{t \in [a,b]} \abs{p(t)}.
+	\]
+\end{theorem}
+
+A slightly weaker version of the theorem applies for complex $t$
+\cite[Theorem~1]{Fischer1989}.
+
+In this section, we will explain why using a Chebyshev-Jackson polynomial
+approximation to the Heaviside function is a good alternative to the standard
+Chebyshev polynomial of degree $d$, where we exploit the min-max property above.
+Let us call the former approach \emph{Heaviside Chebyshev} and the latter
+{Min-Max Chebyshev}. As a motivation, consider
+Figure~\ref{fig:minmax-vs-heaviside}.  There, we plotted the transformation of
+(real) eigenvalues of a positive definite matrix $A$ with real eigenvalues using
+polynomials $p(A^{-1})$, i.\,e., as if we wanted to compute many small
+eigenvalues of $A$ as quickly as possible. The polynomials only possess their
+special properties inside the interval $[-1, +1]$ and we want to speed up the
+convergence of an iterative method of our choice by filtering the eigenvalues in
+the interval $[a, b]$, $a = 20$, $b \rightarrow \infty$ as much as possible.
+Consequently, we evaluated
+\[ \abs*{p \left(\frac{\sfrac{1}{t} - c}{e}\right)}, \]
+where
+\begin{align*}
+	c &= \frac{1/a + 1/b}{2}, \\
+	e &= \frac{1/a - 1/b}{2}.
+\end{align*}
+Finally, we normalized the values such that the polynomials evaluate to one at
+$x = 10$. The Min-Max Chebyshev polynomial has degree five, the Heaviside
+Chebyshev-Jackson polynomial has degree 7 by design but due to the coefficients,
+the real degree is five, too (see Section~\ref{sec:projection-approximation}).
+
+The overall filtering in the range shown is better for the Min-Max~Chebyshev
+polynomial yet is has a significant drawback: the damping not uniform and in
+fact, the Min-Max Chebyshev polynomial drives wedges into the spectrum. When
+using the Min-Max polynomial in the subspace iteration method in practice, this
+means that a small fraction of the search space is an increasingly \emph{worse}
+approximation to the eigenspace corresponding to the smallest eigenvalues. Note
+that the polynomial degree of the Heaviside Chebyshev polynomial cannot be
+chosen arbitrarily: for certain degrees, there is a sign change of the
+polynomial in the interval $[0, 10]$ implying the existence of a root in this
+interval. In this case, the Heaviside Chebyshev polynomial ends up filtering a
+subset of the eigenvalues in $[0, 10]$.
+
+\begin{figure}
+	\includegraphics{minmax-vs-heaviside}
+	\caption{A Min-Max Chebyshev and a Heaviside Chebyshev
+	polynomial of degree five ($c = \sfrac{1}{40}$, $e = \sfrac{1}{40}$)}
+	\label{fig:minmax-vs-heaviside}
+\end{figure}
+
+We just showed how we can achieve uniform damping over a range of unwanted
+eigenvalues using the Heaviside Chebyshev polynomial but there is another issue
+that warrants attention. In Figure~\ref{fig:minmax-vs-heaviside}, the smallest
+value for which we evaluated the polynomial is $t = 1$. Now consider that we are
+computing all eigenvalues $\lambda \leq \lambda_c$ of matrix $A$ with real
+eigenvalues using subspace iterations, where $\lambda_c = 1$.  Furthermore, let
+$\lambda_1 = 10^{-3}$ be the smallest eigenvalue of $A$ and let
+$\almost{\lambda}_s = 10$ be the largest approximate eigenvalue in the search
+space. Let $q(t)$ be the function that generated the Heaviside Chebyshev plot in
+Figure~\ref{fig:minmax-vs-heaviside}. Then
+\begin{align*}
+	q(\lambda_1) &\approx 6 \cdot 10^{20}, \\
+	q(\lambda_c) &\approx 5 \cdot 10^5, \\
+	q(\almost{\lambda}_s) &\approx 1.
+\end{align*}
+Let $v$ be a basis vector for the current search space, let $x_1$ an eigenvector
+of $\lambda_1$, let $\almost{x}_s$ be the approximate eigenvector corresponding
+to the approximate eigenvalue $\almost{\lambda}_s$. In layman's terms, the
+numbers above tell us that after one subspace iteration with the Heaviside
+Chebyshev polynomial, the components in $v$ in the direction of $x_1$ were
+amplified by a factor $10^{20}$ whereas the components in the
+direction of $\almost{x}_s$ remained constant. If we use IEEE~754 double
+precision float numbers, then we have about 16~digits of precision
+\cite[§2.7.2]{Golub2012} so we cannot expect that components in the direction of
+$\almost{x}_s$ will be left in the search space after applying the Heaviside
+Chebyshev polynomial once.  Consequently, the vectors spanning the search space
+may be linearly dependent.
+
+The problem here is the combination of values of varying magnitudes with a
+fifth-order polynomial. Consider how the arguments to $p(\cdot)$ are
+transformed:
+\begin{align*}
+	\frac{\sfrac{1}{\lambda_1} - c}{e} &\approx 40 \cdot 10^3, \\
+	\frac{\sfrac{1}{\lambda_c} - c}{e} &\approx 40, \\
+	\frac{\sfrac{1}{\lambda_s} - c}{e} &\approx 3.
+\end{align*}
+We can solve this problem by shifting $A$.
+
 \printbibliography
 
 \end{document}
