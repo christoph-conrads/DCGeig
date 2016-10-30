@@ -409,7 +409,7 @@ For the step function $h(t)$, the coefficients are \cite{DiNapoli2016}
 \[
 	\gamma_k =
 	\begin{dcases*}
-		\frac{1}{\pi} (\arccos a  - \arccos b) & if $k = 0$, \\
+		\frac{1}{\pi} (\arccos a - \arccos b) & if $k = 0$, \\
 		\frac{2}{\pi} \frac{\sin(k \arccos a) - \sin(k \arccos b)}{k} &
 			if $k > 0$.
 	\end{dcases*}
@@ -769,7 +769,7 @@ approximation to the Heaviside function is a good alternative to the standard
 Chebyshev polynomial of degree $d$, where we exploit the min-max property above.
 Let us call the former approach \emph{Heaviside Chebyshev} and the latter
 {Min-Max Chebyshev}. As a motivation, consider
-Figure~\ref{fig:minmax-vs-heaviside}.  There, we plotted the transformation of
+Figure~\ref{fig:minmax-vs-heaviside}. There, we plotted the transformation of
 (real) eigenvalues of a positive definite matrix $A$ with real eigenvalues using
 polynomials $p(A^{-1})$, i.\,e., as if we wanted to compute many small
 eigenvalues of $A$ as quickly as possible. The polynomials only possess their
@@ -812,7 +812,7 @@ eigenvalues using the Heaviside Chebyshev polynomial but there is another issue
 that warrants attention. In Figure~\ref{fig:minmax-vs-heaviside}, the smallest
 value for which we evaluated the polynomial is $t = 1$. Now consider that we are
 computing all eigenvalues $\lambda \leq \lambda_c$ of matrix $A$ with real
-eigenvalues using subspace iterations, where $\lambda_c = 1$.  Furthermore, let
+eigenvalues using subspace iterations, where $\lambda_c = 1$. Furthermore, let
 $\lambda_1 = 10^{-3}$ be the smallest eigenvalue of $A$ and let
 $\almost{\lambda}_s = 10$ be the largest approximate eigenvalue in the search
 space. Let $q(t)$ be the function that generated the Heaviside Chebyshev plot in
@@ -832,7 +832,7 @@ direction of $\almost{x}_s$ remained constant. If we use IEEE~754 double
 precision float numbers, then we have about 16~digits of precision
 \cite[§2.7.2]{Golub2012} so we cannot expect that components in the direction of
 $\almost{x}_s$ will be left in the search space after applying the Heaviside
-Chebyshev polynomial once.  Consequently, the vectors spanning the search space
+Chebyshev polynomial once. Consequently, the vectors spanning the search space
 may be linearly dependent.
 
 The problem here is the combination of values of varying magnitudes with a
