@@ -845,6 +845,102 @@ transformed:
 \end{align*}
 We can solve this problem by shifting $A$.
 
+
+
+\section{Fast Eigenspace Computations with Polynomial Filtering}
+
+The goal of this paper is to propose a recursive method that computes all
+eigenpairs $(\lambda, x)$, where $\lambda \leq \lambda_c$, as quickly as
+possible. We found out that
+\begin{itemize}
+	\item we can estimate the number of desired eigenpairs,
+	\item we can estimate the number of desired eigenpairs for each subproblem,
+	\item we can use Gaussian statistics to determine the accuracy of the
+		estimate, and
+	\item we can uniformly improve search spaces.
+\end{itemize}
+The idea to compute all desired eigenpairs is as follows:
+\begin{itemize}
+	\item compute an estimate of the number of desired eigenpairs bottom-up,
+	\item compute good search spaces bottom-up using polynomial filtering, and
+	\item solve a small, dense generalized eigenvalue problem once.
+\end{itemize}
+The advantages of this method are:
+\begin{itemize}
+	\item many matrix-matrix multiplications,
+	\item only a single dense GEP solve.
+\end{itemize}
+The drawbacks are:
+\begin{itemize}
+	\item there are as many linear system solves as matrix-matrix
+		multiplications.
+\end{itemize}
+
+Algorithm~\ref{algo:estimate-trace} is an implementation of the ideas from
+Section~\ref{sec:estimating-matrix-trace}. The function $f(U)$ computes
+$p(A^{-1}) U$, where $p(t)$ is a polynomial approximation to the projection onto
+the eigenspace corresponding to the desired eigenvalues (see
+Section~\ref{sec:projection-approximation}). The isometric matrix $P$ acts as a
+prolongation operator with $P^*$ being the corresponding restriction operator.
+The random number generator of our choice will draw from the Rademacher
+distribution because of the simplicity and the competitive performance in
+practice. Gaussian distribution generators are readily available in many
+programming languages but they possess and inherent complexity since normal
+distributed values cannot be drawn directly \cite[§3.4]{Knuth1998} and because
+of the issues arising with finite precision arithmetic (see \cite{Grabowski2015}
+as well as the corresponding bug reports for
+GCC\footnote{\url{https://gcc.gnu.org/bugzilla/show_bug.cgi?id=65723}} and
+LLVM\footnote{\url{https://llvm.org/bugs/show_bug.cgi?id=23168}}).
+
+\begin{algorithm}
+	\begin{algorithmic}
+		\Require
+			$f: \F^m \rightarrow \F^m$,
+			$b \in \mathbb{N} \setminus \{0\}$,
+			$k \in \mathbb{N} \setminus \{0\}$,
+			$0 < \varepsilon \leq 1$,
+			$A \in \F^{n,n}$,
+			isometric matrix $P \in \F^{m,n}$
+		\Ensure
+			Trace estimate $\mu$ of $A$,
+			its standard deviation $\sigma$
+
+		\Statex
+		\Function{estimate-trace}{$f, b, k, \varepsilon, A$}
+			\If{$A$ is too large}
+				\State $\mu_1, \sigma_1 \gets
+					\textsc{estimate-trace}(f, b, k, \varepsilon, A_{11})$
+				\State $\mu_2, \sigma_2 \gets
+					\textsc{estimate-trace}(f, b, k, \varepsilon, A_{22})$
+				\State $\sigma \gets \sqrt{\sigma_1^2+\sigma_2^2}$
+				\State \textbf{return} $\mu_1+\mu_2$, $\sigma$
+			\EndIf
+
+			\Statex
+			\State $\mu \gets 0$
+			\State $\sigma \gets 1$
+
+			\Statex
+			\While{$k \sigma > \varepsilon \mu$}
+				\State $V \gets \textsc{make-random-matrix}(n, b)$
+				\State $W \gets P^* f(P V)$
+
+				\Statex
+				\State $\mu' \gets \textsc{mean}(\diag(W^* V))$
+				\State $\sigma' \gets \textsc{std}(\diag(W^* V))$
+				\State $\mu, \sigma \gets
+					\textsc{combine-statistics}(\mu, \sigma, \mu', \sigma')$
+			\EndWhile
+
+			\Statex
+			\State \textbf{return} $\mu$, $\sigma$
+		\EndFunction
+	\end{algorithmic}
+	\caption{A function for recursive trace estimation}
+	\label{algo:estimate-trace}
+\end{algorithm}
+
+
 \printbibliography
 
 \end{document}
