@@ -9,63 +9,16 @@
 import numbers
 
 import numpy as NP
+import numpy.matlib as ML
 import numpy.linalg
 import scipy.sparse as SS
+import scipy.linalg
 import scipy.sparse.linalg as LA
 
+import dcgeig
 import dcgeig.utils as utils
 import dcgeig.metis as metis
-
-import copy
-
-
-class Tree:
-    @staticmethod
-    def make_leaf_node(data):
-        return Tree(None, None, data)
-
-    @staticmethod
-    def make_internal_node(left_child, right_child, data):
-        return Tree(left_child, right_child, data)
-
-
-    def __init__(self, left_child, right_child, data):
-        if not isinstance(data, dict):
-            raise TypeError('data must be a dictionary')
-
-        # this test does not catch strings that are not identifiers like '1'
-        if filter(lambda k: not isinstance(k, str), data.keys()):
-            raise ValueError('data keys must be strings')
-
-        if 'left_child' in data or 'right_child' in data:
-            raise AttributeError('Illegal keys found')
-
-        self.left_child = left_child
-        self.right_child = right_child
-        self.__dict__.update(data)
-
-
-    def has_left_child(self):
-        return self.left_child is not None
-
-    def has_right_child(self):
-        return self.right_child is not None
-
-    def is_leaf_node(self):
-        return (not self.left_child) and (not self.right_child)
-
-
-    def get_height(self):
-        if Tree.is_leaf_node(self):
-            return 0
-
-        assert Tree.has_left_child(self)
-        assert Tree.has_right_child(self)
-
-        left = self.left_child
-        right = self.right_child
-
-        return max(Tree.get_height(left), Tree.get_height(right)) + 1
+import dcgeig.binary_tree as binary_tree
 
 
 
@@ -143,7 +96,7 @@ def multilevel_bisection(A, n_direct):
     n = A.shape[0]
 
     if n <= n_direct:
-        tree = Tree.make_leaf_node({'n': n})
+        tree = binary_tree.make_leaf_node({'n': n})
         perm = NP.arange(n)
         return tree, perm
 
@@ -161,7 +114,7 @@ def multilevel_bisection(A, n_direct):
     assert NP.sum(~t) == perm22.shape[0]
     assert left_child.n + right_child.n == n
 
-    tree = Tree.make_internal_node(left_child, right_child, {'n': n})
+    tree = binary_tree.make_internal_node(left_child, right_child, {'n': n})
 
     p = NP.arange(n)
     p1 = p[t]
@@ -190,7 +143,7 @@ def multilevel_nested_dissection(A, n_direct):
     if n <= n_direct:
         perm = NP.arange(n)
         sizes = NP.array([n/2, n-n/2, 0])
-        tree = Tree.make_leaf_node({'n': n})
+        tree = binary_tree.make_leaf_node({'n': n})
         return tree, perm
 
 
@@ -219,27 +172,40 @@ def multilevel_nested_dissection(A, n_direct):
     perm_ret = NP.concatenate( [p_1[q_1], p_2[q_2], p_3] )
     assert NP.all( NP.sort(perm_ret) == NP.arange(n) )
 
-    tree = Tree.make_internal_node(left_sizes, right_sizes, {'n': n})
+    tree = binary_tree.make_internal_node(left_sizes, right_sizes, {'n': n})
 
     return tree, perm_ret
 
 
 
-def add_postorder_id(tree, sid=1):
-    assert isinstance(tree, Tree)
-    assert not hasattr(tree, 'id')
+def rayleigh_ritz(K, M, S=None):
+    assert SS.isspmatrix(K)
+    assert SS.isspmatrix(M)
 
-    if Tree.is_leaf_node(tree):
-        new_tree = copy.copy(tree)
-        new_tree.id = sid
-        return new_tree
+    if S is None:
+        A = K.todense()
+        B = M.todense()
+        Q = SS.identity(K.shape[0], dtype=K.dtype)
+    else:
+        assert isinstance(S, ML.matrix)
+        assert S.shape[0] > S.shape[1]
 
-    new_left = add_postorder_id(tree.left_child, sid)
-    new_right= add_postorder_id(tree.right_child, new_left.id+1)
+        Q, _ = scipy.linalg.qr(S, mode='economic')
+        Q = ML.matrix(Q)
 
-    new_tree = copy.copy(tree)
-    new_tree.left_child = new_left
-    new_tree.right_child = new_right
-    new_tree.id = new_right.id + 1
+        A = utils.force_hermiticity(Q.H * K * Q)
+        B = utils.force_hermiticity(Q.H * M * Q)
 
-    return new_tree
+    d, X_Q = dcgeig.deflation(A, B)
+
+    t = NP.isfinite(d)
+    d = d[t]
+    X_Q = X_Q[:,t]
+
+    i = NP.argsort(d)
+    d = d[i]
+    X_Q = X_Q[:,i]
+
+    X = Q * X_Q
+
+    return d, X

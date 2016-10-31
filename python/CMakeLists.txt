@@ -66,4 +66,3 @@ target_link_libraries(pysolvers PUBLIC solvers)
 
 
 install(TARGETS metis pysolvers LIBRARY DESTINATION ${PACKAGE_DIR})
-install(PROGRAMS multilevel-gep-solver solve-gep DESTINATION bin)

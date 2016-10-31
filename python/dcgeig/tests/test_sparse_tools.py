@@ -15,30 +15,9 @@ import numpy.random
 import scipy.sparse as SS
 import scipy.sparse.linalg as LA
 
+import dcgeig.binary_tree as binary_tree
 import dcgeig.sparse_tools as sparse_tools
-from dcgeig.sparse_tools import Tree
-
-
-
-class Test_Tree(unittest.TestCase):
-    def test_simple(self):
-        data = {'a': 1, 'b': 2.0, 'c': 'd'}
-        tree = Tree.make_leaf_node(data)
-
-        self.assertEqual( tree.a, data['a'] )
-        self.assertEqual( tree.b, data['b'] )
-        self.assertEqual( tree.c, data['c'] )
-
-
-    def test_invalid(self):
-        data = {1: '2'}
-
-        with self.assertRaises(ValueError):
-            tree = Tree.make_leaf_node(data)
-
-        with self.assertRaises(ValueError):
-            leaf = Tree.make_leaf_node({})
-            tree = Tree.make_internal_node(leaf, leaf, data)
+import dcgeig.error_analysis as error_analysis
 
 
 
@@ -107,7 +86,7 @@ class Test_multilevel_bisection(unittest.TestCase):
     def check_tree(self, n, tree):
         self.assertEqual( tree.n, n )
 
-        if Tree.is_leaf_node(tree):
+        if tree.is_leaf_node():
             return
 
         self.assertTrue( hasattr(tree, 'left_child') )
@@ -116,8 +95,8 @@ class Test_multilevel_bisection(unittest.TestCase):
         left = tree.left_child
         right = tree.right_child
 
-        self.assertTrue( isinstance(left, Tree) )
-        self.assertTrue( isinstance(right, Tree) )
+        self.assertTrue( isinstance(left, binary_tree.BinaryTree) )
+        self.assertTrue( isinstance(right, binary_tree.BinaryTree) )
 
         self.assertEqual( left.n + right.n, n )
 
@@ -141,7 +120,7 @@ class Test_multilevel_bisection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_bisection(A, n)
 
         self.check_return_values(n, tree, perm)
-        self.assertEqual( Tree.get_height(tree), 0 )
+        self.assertEqual( tree.get_height(), 0 )
 
 
 
@@ -151,7 +130,7 @@ class Test_multilevel_bisection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_bisection(A, 1)
 
         self.check_return_values(n, tree, perm)
-        self.assertEqual( Tree.get_height(tree), 2 )
+        self.assertEqual( tree.get_height(), 2 )
 
 
 
@@ -173,7 +152,7 @@ class Test_multilevel_bisection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_bisection(B, 2)
 
         self.check_return_values(n, tree, perm)
-        self.assertTrue( Tree.get_height(tree), 3 )
+        self.assertTrue( tree.get_height(), 3 )
 
         C = B[:,perm][perm,:]
         self.assertEqual( LA.norm(C[:,:4][4:,:], 'fro')**2, 16 )
@@ -186,7 +165,7 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
     def check_tree(self, n, tree):
         self.assertEqual( tree.n, n )
 
-        if Tree.is_leaf_node(tree):
+        if tree.is_leaf_node():
             return
 
         self.assertTrue( hasattr(tree, 'left_child') )
@@ -195,8 +174,8 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         left = tree.left_child
         right = tree.right_child
 
-        self.assertTrue( isinstance(left, Tree) )
-        self.assertTrue( isinstance(right, Tree) )
+        self.assertTrue( isinstance(left, binary_tree.BinaryTree) )
+        self.assertTrue( isinstance(right, binary_tree.BinaryTree) )
 
         self.assertTrue( left.n + right.n <= n )
 
@@ -221,7 +200,7 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_nested_dissection(A, n)
 
         self.check_return_values(n, tree, perm)
-        self.assertEqual( Tree.get_height(tree), 0 )
+        self.assertEqual( tree.get_height(), 0 )
 
 
 
@@ -231,7 +210,7 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_nested_dissection(A, 1)
 
         self.check_return_values(n, tree, perm)
-        self.assertEqual( Tree.get_height(tree), 2 )
+        self.assertEqual( tree.get_height(), 2 )
 
 
 
@@ -259,7 +238,7 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_nested_dissection(B, n_direct)
 
         self.check_return_values(n, tree, perm)
-        self.assertTrue( Tree.get_height(tree), 3 )
+        self.assertTrue( tree.get_height(), 3 )
 
         n_1 = tree.left_child.n
         n_2 = tree.right_child.n
@@ -277,41 +256,24 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
 
 
 
-class Test_add_postorder_id(unittest.TestCase):
-    def check_tree(self, tree):
-        self.assertTrue( isinstance(tree.id, int) )
-
-        if Tree.is_leaf_node(tree):
-            return
-
-        self.assertTrue( hasattr(tree, 'left_child') )
-        self.assertTrue( hasattr(tree, 'right_child') )
-
-        left = tree.left_child
-        right = tree.right_child
-
-        self.assertTrue( isinstance(left, Tree) )
-        self.assertTrue( isinstance(right, Tree) )
-
-        self.assertTrue( left.id < right.id )
-        self.assertEqual( right.id + 1, tree.id )
-
-        self.check_tree(tree.left_child)
-        self.check_tree(tree.right_child)
-
-
+class Test_rayleigh_ritz(unittest.TestCase):
     def test_simple(self):
-        self.check_tree( Tree.make_leaf_node({'id': -123}) )
+        n = 5
+        m = 2
 
+        ds = NP.arange(1.0 * n)
+        K = SS.spdiags(ds, 0, n, n, format='csc')
+        M = SS.identity(n, format='lil')
 
-    def test_unbalanced(self):
-        t0 = Tree.make_leaf_node({'id': 100})
-        t1 = Tree.make_leaf_node({'id': 101})
-        t2 = Tree.make_internal_node(t0, t1, {'id': 102})
-        t3 = Tree.make_leaf_node({'id': 103})
-        t4 = Tree.make_internal_node(t2, t3, {'id': 104})
+        S = ML.zeros( [n,m] )
+        S[2:4,:] = NP.array( [[1, 1], [1, 0]] )
 
-        self.check_tree(t4)
+        d, X = sparse_tools.rayleigh_ritz(K, M, S)
+        eta, delta = error_analysis.compute_errors(K, M, d, X)
+
+        eps = NP.finfo(d.dtype).eps
+        self.assertTrue( NP.all(eta <= n * eps) )
+
 
 
 if __name__ == '__main__':

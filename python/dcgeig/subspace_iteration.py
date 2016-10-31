@@ -7,7 +7,6 @@
 # license. See http://DCGeig.tech/license for a copy of this license.
 
 import dcgeig.utils as utils
-import dcgeig.multilevel_tools as tools
 
 import numpy as NP
 import numpy.matlib as ML
@@ -73,8 +72,9 @@ def inverse_iteration( \
 
 
 
-def execute(options, lambda_c, do_stop, LU, K, M, d, X, eta, delta):
-    assert isinstance(options, tools.Options)
+def execute(max_num_iterations, lambda_c, do_stop, LU, K, M, d, X, eta, delta):
+    assert isinstance(max_num_iterations, int)
+    assert max_num_iterations > 0
     assert SS.isspmatrix_csc(K)
     assert utils.is_hermitian(K)
     assert SS.isspmatrix(M)
@@ -90,7 +90,7 @@ def execute(options, lambda_c, do_stop, LU, K, M, d, X, eta, delta):
     wallclock_time_sle = 0
     wallclock_time_rr = 0
 
-    for i in range(1, options.max_num_iterations+1):
+    for i in range(1, max_num_iterations+1):
         wallclock_time_sle_start = time.time()
         inverse_iteration( \
             lambda_c, poly_degree, f, K, M, d, X, overwrite_b=True)
