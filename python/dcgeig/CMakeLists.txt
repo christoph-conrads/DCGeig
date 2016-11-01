@@ -8,6 +8,7 @@ install(FILES
 		binary_tree.py
 		error_analysis.py
 		options.py
+		polynomial.py
 		sparse_tools.py
 		subspace_iteration.py
 		utils.py
