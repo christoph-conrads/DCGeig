@@ -95,8 +95,8 @@ class Test_multilevel_bisection(unittest.TestCase):
         left = tree.left_child
         right = tree.right_child
 
-        self.assertTrue( isinstance(left, binary_tree.BinaryTree) )
-        self.assertTrue( isinstance(right, binary_tree.BinaryTree) )
+        self.assertTrue( isinstance(left, binary_tree.Node) )
+        self.assertTrue( isinstance(right, binary_tree.Node) )
 
         self.assertEqual( left.n + right.n, n )
 
@@ -174,8 +174,8 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         left = tree.left_child
         right = tree.right_child
 
-        self.assertTrue( isinstance(left, binary_tree.BinaryTree) )
-        self.assertTrue( isinstance(right, binary_tree.BinaryTree) )
+        self.assertTrue( isinstance(left, binary_tree.Node) )
+        self.assertTrue( isinstance(right, binary_tree.Node) )
 
         self.assertTrue( left.n + right.n <= n )
 

@@ -11,7 +11,7 @@ import numbers
 import copy
 
 
-class BinaryTree:
+class Node:
     def __init__(self, left_child, right_child, data):
         if not isinstance(data, dict):
             raise TypeError('data must be a dictionary')
@@ -53,30 +53,30 @@ class BinaryTree:
 
 
 def make_leaf_node(data):
-    return BinaryTree(None, None, data)
+    return Node(None, None, data)
 
 
 
 def make_internal_node(left_child, right_child, data):
-    return BinaryTree(left_child, right_child, data)
+    return Node(left_child, right_child, data)
 
 
 
-def add_postorder_id(tree, sid=1):
-    assert isinstance(tree, BinaryTree)
-    assert not hasattr(tree, 'id')
+def add_postorder_id(node, sid=1):
+    assert isinstance(node, Node)
+    assert not hasattr(node, 'id')
 
-    if tree.is_leaf_node():
-        new_tree = copy.copy(tree)
-        new_tree.id = sid
-        return new_tree
+    if node.is_leaf_node():
+        new_node = copy.copy(node)
+        new_node.id = sid
+        return new_node
 
-    new_left = add_postorder_id(tree.left_child, sid)
-    new_right= add_postorder_id(tree.right_child, new_left.id+1)
+    new_left = add_postorder_id(node.left_child, sid)
+    new_right= add_postorder_id(node.right_child, new_left.id+1)
 
-    new_tree = copy.copy(tree)
-    new_tree.left_child = new_left
-    new_tree.right_child = new_right
-    new_tree.id = new_right.id + 1
+    new_node = copy.copy(node)
+    new_node.left_child = new_left
+    new_node.right_child = new_right
+    new_node.id = new_right.id + 1
 
-    return new_tree
+    return new_node

@@ -12,7 +12,7 @@ import unittest
 
 
 
-class Test_BinaryTree(unittest.TestCase):
+class Test_Node(unittest.TestCase):
     def test_simple(self):
         data = {'a': 1, 'b': 2.0, 'c': 'd'}
         tree = binary_tree.make_leaf_node(data)
@@ -47,8 +47,8 @@ class Test_add_postorder_id(unittest.TestCase):
         left = tree.left_child
         right = tree.right_child
 
-        self.assertTrue( isinstance(left, binary_tree.BinaryTree) )
-        self.assertTrue( isinstance(right, binary_tree.BinaryTree) )
+        self.assertTrue( isinstance(left, binary_tree.Node) )
+        self.assertTrue( isinstance(right, binary_tree.Node) )
 
         self.assertTrue( left.id < right.id )
         self.assertEqual( right.id + 1, tree.id )
