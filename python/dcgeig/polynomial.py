@@ -83,26 +83,36 @@ def compute_chebyshev_step_coefficients(d, a, b):
 
 
 
-# this function implements the Clenshaw algorithm for monomials(Horner's method)
-def evaluate_matrix_polynomial(ps, c1, c2, solve, K, M, U):
-    assert isinstance(ps, NP.ndarray)
+# this function implements the Clenshaw algorithm for Chebyshev polynomials
+def evaluate_matrix_polynomial(cs, c1, c2, solve, A, B, U):
+    assert isinstance(cs, NP.ndarray)
     assert isinstance(c1, numbers.Real)
     assert NP.isfinite(c1)
     assert isinstance(c2, numbers.Real)
     assert NP.isfinite(c2)
     assert callable(solve)
-    assert SS.isspmatrix(K)
-    assert SS.isspmatrix(M)
+    assert SS.isspmatrix(A)
+    assert SS.isspmatrix(B)
     assert isinstance(U, NP.ndarray)
 
-    d = len(ps)-1
-    V = ps[d] * U
-    C = c1*M - c2*K
+    d = len(cs)-1
+    C = c1*B - c2*A
 
-    for i in range(d-1, -1, -1):
-        V = ps[i] * U + solve( C * V )
+    if d == 0:
+        return cs[0] * U
+    if d == 1:
+        return cs[0] * U + cs[1] * solve(C*U)
 
-    return V
+    W = cs[-1] * U
+    V = cs[-2] * U + 2 * solve(C*W)
+
+    for i in range(d-2, 0, -1):
+        T = cs[i] * U + 2 * solve(C*V) - W
+        W = V
+        V = T
+
+    # note the missing factor 2 in the second term
+    return cs[0] * U + solve(C*V) - W
 
 
 
@@ -127,7 +137,7 @@ def approximate_projection(d, lambda_1, lambda_c, K, M):
 
     cs = compute_chebyshev_heaviside_coefficients(d)
     js = compute_jackson_coefficients(d)
-    ps = NPC.cheb2poly(cs * js)
+    ps = NPC.chebtrim(cs * js)
 
     c1 = 2*lambda_1
     c2 = 1.0

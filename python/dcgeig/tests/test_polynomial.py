@@ -10,6 +10,7 @@ import unittest
 
 import numpy as NP
 import numpy.linalg as LA
+import numpy.polynomial.chebyshev as NPC
 
 import scipy.sparse as SS
 
@@ -97,18 +98,19 @@ class Test_evaluate_matrix_polynomial(unittest.TestCase):
             self.assertTrue( LA.norm(2**d * v - u), 0 )
 
 
-    def test_all_ones(self):
+    def test_all_ones_monomial(self):
         n = 4
         m = 3
 
         for d in range(1, 5):
             ps = NP.ones(d+1)
+            cs = NPC.poly2cheb(ps)
             solve = lambda x: x
             K = SS.identity(n)
             M = SS.identity(n)
 
             U = 1.0 * NP.reshape(NP.arange(1, m*n+1), [n,m])
-            V = polynomial.evaluate_matrix_polynomial(ps, 1, 0, solve, K, M, U)
+            V = polynomial.evaluate_matrix_polynomial(cs, 1, 0, solve, K, M, U)
 
             self.assertEqual( LA.norm(V - (d+1)*U), 0 )
 
@@ -117,7 +119,6 @@ class Test_evaluate_matrix_polynomial(unittest.TestCase):
 class Test_approximate_projection(unittest.TestCase):
     def test_simple(self):
         n = 4
-        m = 3
 
         l = 0.75
         r = 1.5
@@ -125,15 +126,14 @@ class Test_approximate_projection(unittest.TestCase):
         K = SS.diags( 1.0 * NP.arange(1,n+1), format='csc' )
         M = SS.identity(n)
 
-        for d in [50,72,73,100]:
+        for d in [25,50,75]:
             f = polynomial.approximate_projection(d, l, r, K, M)
 
             U = NP.identity(n)
             V = f(U)
-            
-            eps = NP.finfo(NP.float32).eps
-            self.assertTrue( abs(NP.trace(V) - 1) <= eps )
 
+            n_c = NP.trace(V)
+            self.assertTrue( abs(n_c - 1) <= 2e-2 )
 
 
 if __name__ == '__main__':
