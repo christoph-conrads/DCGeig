@@ -96,7 +96,7 @@ def multilevel_bisection(A, n_direct):
     n = A.shape[0]
 
     if n <= n_direct:
-        tree = binary_tree.make_leaf_node({'n': n})
+        tree = binary_tree.make_leaf_node(n)
         perm = NP.arange(n)
         return tree, perm
 
@@ -114,7 +114,7 @@ def multilevel_bisection(A, n_direct):
     assert NP.sum(~t) == perm22.shape[0]
     assert left_child.n + right_child.n == n
 
-    tree = binary_tree.make_internal_node(left_child, right_child, {'n': n})
+    tree = binary_tree.make_internal_node(left_child, right_child, n)
 
     p = NP.arange(n)
     p1 = p[t]
@@ -143,7 +143,7 @@ def multilevel_nested_dissection(A, n_direct):
     if n <= n_direct:
         perm = NP.arange(n)
         sizes = NP.array([n/2, n-n/2, 0])
-        tree = binary_tree.make_leaf_node({'n': n})
+        tree = binary_tree.make_leaf_node(n)
         return tree, perm
 
 
@@ -172,7 +172,7 @@ def multilevel_nested_dissection(A, n_direct):
     perm_ret = NP.concatenate( [p_1[q_1], p_2[q_2], p_3] )
     assert NP.all( NP.sort(perm_ret) == NP.arange(n) )
 
-    tree = binary_tree.make_internal_node(left_sizes, right_sizes, {'n': n})
+    tree = binary_tree.make_internal_node(left_sizes, right_sizes, n)
 
     return tree, perm_ret
 

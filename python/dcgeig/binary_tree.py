@@ -12,20 +12,21 @@ import copy
 
 
 class Node:
-    def __init__(self, left_child, right_child, data):
-        if not isinstance(data, dict):
-            raise TypeError('data must be a dictionary')
+    def __init__(self, left_child, right_child, n, data):
+        assert isinstance(n, int)
+        assert n >= 0
+        assert isinstance(data, dict)
+        assert 'left_child' not in data
+        assert 'right_child' not in data
+        assert 'n' not in data
 
-        # this test does not catch strings that are not identifiers like '1'
-        if filter(lambda k: not isinstance(k, str), data.keys()):
+        if filter(lambda key: not isinstance(key, str), data.keys()):
             raise ValueError('data keys must be strings')
 
-        if 'left_child' in data or 'right_child' in data:
-            raise AttributeError('Illegal keys found')
-
+        self.__dict__.update(data)
         self.left_child = left_child
         self.right_child = right_child
-        self.__dict__.update(data)
+        self.n = n
 
 
     def has_left_child(self):
@@ -52,13 +53,13 @@ class Node:
 
 
 
-def make_leaf_node(data):
-    return Node(None, None, data)
+def make_leaf_node(n, data={}):
+    return Node(None, None, n, data)
 
 
 
-def make_internal_node(left_child, right_child, data):
-    return Node(left_child, right_child, data)
+def make_internal_node(left_child, right_child, n, data={}):
+    return Node(left_child, right_child, n, data)
 
 
 
