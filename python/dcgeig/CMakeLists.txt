@@ -9,6 +9,7 @@ install(FILES
 		error_analysis.py
 		options.py
 		polynomial.py
+		solver.py
 		sparse_tools.py
 		subspace_iteration.py
 		utils.py
