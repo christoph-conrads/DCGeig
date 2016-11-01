@@ -66,7 +66,7 @@ def add_postorder_id(tree, sid=1):
     assert isinstance(tree, BinaryTree)
     assert not hasattr(tree, 'id')
 
-    if Tree.is_leaf_node(tree):
+    if tree.is_leaf_node():
         new_tree = copy.copy(tree)
         new_tree.id = sid
         return new_tree

@@ -58,17 +58,23 @@ class Test_add_postorder_id(unittest.TestCase):
 
 
     def test_simple(self):
-        self.check_tree( binary_tree.make_leaf_node({'id': -123}) )
+        left = binary_tree.make_leaf_node({})
+        right = binary_tree.make_leaf_node({})
+        root = binary_tree.make_internal_node(left, right, {})
+
+        id_tree = binary_tree.add_postorder_id(root)
+        self.check_tree( id_tree )
 
 
     def test_unbalanced(self):
-        t0 = binary_tree.make_leaf_node({'id': 100})
-        t1 = binary_tree.make_leaf_node({'id': 101})
-        t2 = binary_tree.make_internal_node(t0, t1, {'id': 102})
-        t3 = binary_tree.make_leaf_node({'id': 103})
-        t4 = binary_tree.make_internal_node(t2, t3, {'id': 104})
+        t0 = binary_tree.make_leaf_node({})
+        t1 = binary_tree.make_leaf_node({})
+        t2 = binary_tree.make_internal_node(t0, t1, {})
+        t3 = binary_tree.make_leaf_node({})
+        t4 = binary_tree.make_internal_node(t2, t3, {})
 
-        self.check_tree(t4)
+        id_tree = binary_tree.add_postorder_id(t4)
+        self.check_tree(id_tree)
 
 
 
