@@ -13,7 +13,9 @@ import numpy.linalg as LA
 import numpy.polynomial.chebyshev as NPC
 
 import scipy.sparse as SS
+import scipy.sparse.linalg as SLA
 
+import dcgeig.gallery as gallery
 import dcgeig.polynomial as polynomial
 
 
@@ -134,6 +136,81 @@ class Test_approximate_projection(unittest.TestCase):
 
             n_c = NP.trace(V)
             self.assertTrue( abs(n_c - 1) <= 2e-2 )
+
+
+    # test tridiagonal stiffness matrix + identity
+    def test_1D_FDM_Laplacian(self):
+        n = 100
+        A = gallery.fdm_laplacian_1D(n)
+        B = SS.identity(n)
+
+        l = NP.pi**2
+        r = 2 * l
+
+        for d in [25,50,75]:
+            f = polynomial.approximate_projection(d, l, r, A, B)
+
+            U = NP.identity(n)
+            V = f(U)
+
+            n_c = NP.trace(V)
+            self.assertTrue( abs(n_c - 1) <= 2e-2 )
+
+
+    # test block tridiagonal stiffness matrix + identity
+    def test_2D_FDM_Laplacian(self):
+        n = 10
+        A = gallery.fdm_laplacian_2D(n)
+        B = SS.identity(n*n)
+
+        l = 2 * NP.pi**2
+        r = 2 * l
+
+        for d in [25,50,75]:
+            f = polynomial.approximate_projection(d, l, r, A, B)
+
+            U = NP.identity(n**2)
+            V = f(U)
+
+            n_c = NP.trace(V)
+            self.assertTrue( abs(n_c - 1) <= .15 )
+
+
+    # test tridiagonal + tridiagonal matrix
+    def test_1D_FEM_Laplacian(self):
+        n = 100
+        A, B = gallery.fem_laplacian_1D(n)
+
+        l = NP.pi**2
+        r = 2 * l
+
+        for d in [25,50,75]:
+            f = polynomial.approximate_projection(d, l, r, A, B)
+
+            U = NP.identity(n)
+            V = f(U)
+
+            n_c = NP.trace(V)
+            self.assertTrue( abs(n_c - 1) <= 2e-2 )
+
+
+    # test block tridiagonal + block tridiagonal matrix
+    def test_2D_FEM_Laplacian(self):
+        n = 10
+        A, B = gallery.fem_laplacian_2D(n)
+
+        l = 2 * NP.pi**2
+        r = 2 * l
+
+        for d in [25,50,75]:
+            f = polynomial.approximate_projection(d, l, r, A, B)
+
+            U = NP.identity(n**2)
+            V = f(U)
+
+            n_c = NP.trace(V)
+            self.assertTrue( abs(n_c - 1) <= 1e-1 )
+
 
 
 if __name__ == '__main__':

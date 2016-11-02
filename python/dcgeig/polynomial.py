@@ -143,6 +143,8 @@ def approximate_projection(d, lambda_1, lambda_c, K, M):
     c2 = 1.0
 
     def f(V):
+        assert K.shape[0] == V.shape[0]
+
         return evaluate_matrix_polynomial(ps, c1, c2, LU.solve, K, M, V)
 
     return f
