@@ -7,11 +7,11 @@
 # license. See http://DCGeig.tech/license for a copy of this license.
 
 
+import numpy as NP
+
+
 
 class Options:
     def __init__(self):
         self.n_direct = 1024
-        self.internal_tol = NP.finfo(NP.float32).eps
-        self.c_s = 10
-        self.n_s_min = 32
         self.max_num_iterations = 10
