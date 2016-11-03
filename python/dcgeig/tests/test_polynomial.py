@@ -163,7 +163,7 @@ class Test_approximate_projection(unittest.TestCase):
         A = gallery.fdm_laplacian_2D(n)
         B = SS.identity(n*n)
 
-        l = 2 * NP.pi**2
+        l = 1.5 * NP.pi**2
         r = 2 * l
 
         for d in [25,50,75]:
@@ -181,7 +181,7 @@ class Test_approximate_projection(unittest.TestCase):
         n = 100
         A, B = gallery.fem_laplacian_1D(n)
 
-        l = NP.pi**2
+        l = 0.75 * NP.pi**2
         r = 2 * l
 
         for d in [25,50,75]:
@@ -199,7 +199,7 @@ class Test_approximate_projection(unittest.TestCase):
         n = 10
         A, B = gallery.fem_laplacian_2D(n)
 
-        l = 2 * NP.pi**2
+        l = 1.5 * NP.pi**2
         r = 2 * l
 
         for d in [25,50,75]:
