@@ -217,7 +217,7 @@ def main():
     ds, x = LA.eigsh(A, M=B, k=1, sigma=0, v0=v0)
 
     _, delta = error_analysis.compute_errors(A, B, ds, x)
-    d_min = ds[0] + delta
+    d_min = ds[0] + delta[0]
 
     if lambda_c <= d_min:
         print 'Smallest eigenvalue is {:10.4e}'.format(d_min)
