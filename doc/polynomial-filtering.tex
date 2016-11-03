@@ -405,7 +405,7 @@ expression:
 	\int\limits_{-1}^{+1} \frac{h(t) T_k(t)}{\sqrt{1 - t^2}}\,\mathrm{d}t,
 	\, k = 0, 1, \dotsc, d.
 \]
-For the step function $h(t)$, the coefficients are \cite{DiNapoli2016}
+For the step function $h_{[a,b]}(t)$, the coefficients are \cite{DiNapoli2016}
 \[
 	\gamma_k =
 	\begin{dcases*}
@@ -429,8 +429,8 @@ following Jackson coefficients \cite[§II.C.3]{Weisse2006}:
 With these coefficients the approximating polynomial $p(t)$ is
 \[ p(t) = \sum_{k=1}^d g_k^d \gamma_k T_k(t). \]
 In Figure~\ref{fig:chebyshev-vs-jackson}, we plotted the Chebyshev and the
-Chebyshev-Jackson approximations to the step function $h(t)$ with $a = -0.5$, $b
-= +0.5$ with polynomials of degree 50 (cf.~\cite[Fig.~1]{DiNapoli2016}).
+Chebyshev-Jackson approximations to the step function $h_{[-0.5,+0.5]}(t)$ with
+polynomials of degree 50 (cf.~\cite[Fig.~1]{DiNapoli2016}).
 
 \begin{figure}
 	\begin{center}
@@ -885,7 +885,7 @@ prolongation operator with $P^*$ being the corresponding restriction operator.
 The random number generator of our choice will draw from the Rademacher
 distribution because of the simplicity and the competitive performance in
 practice. Gaussian distribution generators are readily available in many
-programming languages but they possess and inherent complexity since normal
+programming languages but they possess an inherent complexity since normal
 distributed values cannot be drawn directly \cite[§3.4]{Knuth1998} and because
 of the issues arising with finite precision arithmetic (see \cite{Grabowski2015}
 as well as the corresponding bug reports for
@@ -939,7 +939,6 @@ LLVM\footnote{\url{https://llvm.org/bugs/show_bug.cgi?id=23168}}).
 	\caption{A function for recursive trace estimation}
 	\label{algo:estimate-trace}
 \end{algorithm}
-
 
 \printbibliography
 
