@@ -209,3 +209,17 @@ def rayleigh_ritz(K, M, S=None):
     X = Q * X_Q
 
     return d, X
+
+
+
+def get_submatrices_bisection(A, n1, n2):
+    assert SS.isspmatrix(A)
+    assert A.shape[0] == A.shape[1]
+    assert A.shape[0] == n1+n2
+
+    A_1 = A[:,:n1]
+    A11 = A_1[:n1,:]
+    A12 = A_1[n1:,:]
+    A22 = A[:,n1:][n1:,:]
+
+    return A11, A22, A12

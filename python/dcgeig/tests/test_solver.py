@@ -13,6 +13,8 @@ import numpy as NP
 import scipy.sparse as SS
 
 import dcgeig.binary_tree as binary_tree
+import dcgeig.error_analysis as error_analysis
+import dcgeig.gallery as gallery
 import dcgeig.solver as solver
 
 
@@ -53,6 +55,27 @@ class Test_estimate_eigenvalue_count(unittest.TestCase):
 
         self.assertTrue( abs(mu - 1) < eps )
         self.assertTrue( std < eps )
+
+
+
+class Test_compute_smallest_eigenvalue(unittest.TestCase):
+    def test_simple(self):
+        n = 9
+        K = SS.diags(NP.arange(1, n+1), dtype=NP.float64, format='csc')
+        M = SS.identity(n, format='csc')
+
+        left_child = binary_tree.make_leaf_node(4)
+        right_child = binary_tree.make_leaf_node(5)
+        root = binary_tree.make_internal_node(left_child, right_child, n)
+
+        new_root, d, x = solver.compute_smallest_eigenvalue(root, K, M)
+
+        ds = NP.array([d])
+        eta = error_analysis.compute_backward_error(K, M, ds, x)
+
+        eps = NP.finfo(d.dtype).eps
+        self.assertTrue( eta[0] <= eps )
+        self.assertEqual( new_root.smallest_eigenvalue, d )
 
 
 
