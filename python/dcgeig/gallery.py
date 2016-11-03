@@ -11,7 +11,6 @@ import numbers
 import numpy as NP
 
 import scipy.sparse as SS
-import scipy.sparse.linalg as LA
 
 
 
