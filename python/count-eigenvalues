@@ -181,8 +181,6 @@ def sanitize_input(options, user_options):
 
 
 def main():
-    NP.seterr(all='raise')
-
     default_options = Options()
     argument_parser = make_argument_parser(default_options)
     namespace = argument_parser.parse_args()
