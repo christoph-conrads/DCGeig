@@ -92,20 +92,6 @@ def make_argument_parser(default_options):
         help='maximum dimension for direct GEP solves')
 
     parser.add_argument(
-        '--tolerance',
-        metavar='tol',
-        default=5e-2,
-        type=check_if_positive_real,
-        help='maximum relative trace estimator error')
-
-    parser.add_argument(
-        '--confidence',
-        metavar='c',
-        default=3,
-        type=check_if_positive_integer,
-        help='the confidence level as integer multiples of the standard deviation')
-
-    parser.add_argument(
         '--degree',
         metavar='d',
         default=50,
@@ -157,14 +143,8 @@ def sanitize_input(options, user_options):
     options.lambda_c = user_options['cutoff']
     options.k_path = normalize_path( user_options['file'] )
     options.n_direct = user_options['max_dim_direct_solve']
-    options.tol = user_options['tolerance']
-    options.confidence = user_options['confidence']
     options.degree = user_options['degree']
     options.be_quiet = user_options['quiet']
-
-
-    if options.tol >= 1:
-        raise ValueError('The tolerance must be between 0 and 1')
 
 
     # get stiffness matrix
@@ -257,11 +237,8 @@ def main():
     a = lambda_c / s
     b = 2*a
     d = options.degree
-    eps = options.tol
-    k = options.confidence
 
-    root = \
-        solver.estimate_eigenvalue_count(root, K, M, a, b, d, k, eps)
+    root = solver.estimate_eigenvalue_count(root, K, M, a, b, d)
 
     print '{:8.2e} +/- {:10.4e}'.format(root.trace_mean, root.trace_std)
 

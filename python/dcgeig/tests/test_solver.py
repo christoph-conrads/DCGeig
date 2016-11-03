@@ -23,12 +23,10 @@ class Test_estimate_trace(unittest.TestCase):
         m = n-1
         f = lambda x: x
         b = 2
-        k = 1
-        eps = 1e-2
         P = SS.eye(n, m)
         node = binary_tree.make_leaf_node(m)
 
-        node = solver.estimate_trace(f, b, k, eps, P, node)
+        node = solver.estimate_trace(f, b, P, node)
 
         self.assertEqual( node.trace_mean, m )
 
@@ -45,14 +43,13 @@ class Test_estimate_eigenvalue_count(unittest.TestCase):
         root = binary_tree.make_internal_node(left_child, right_child, n)
         eps = 0.05
 
-        new_root = \
-            solver.estimate_eigenvalue_count(root, K, M, 0.75, 1.5, 50, 1, eps)
+        new_root = solver.estimate_eigenvalue_count(root, K, M, 0.75, 1.5, 50)
 
         mu = new_root.trace_mean
         std = new_root.trace_std
 
         self.assertTrue( abs(mu - 1) < eps )
-        self.assertTrue( std < eps )
+        self.assertTrue( std < mu )
 
 
 

@@ -22,16 +22,12 @@ import dcgeig.sparse_tools as sparse_tools
 
 
 
-def estimate_trace(f, b, k, eps, P, node):
+def estimate_trace(f, b, P, node):
     assert callable(f)
     assert isinstance(b, int)
-    assert b > 1 # greater one or the variance is zero after the first estimate
-    assert isinstance(k, int)
-    assert k > 0
-    assert isinstance(eps, numbers.Real)
-    assert eps > 0
-    assert eps < 1
+    assert b > 0
     assert SS.isspmatrix(P)
+    assert isinstance(node, binary_tree.Node)
     assert P.shape[0] >= P.shape[1]
     assert P.shape[1] == node.n
 
@@ -45,8 +41,8 @@ def estimate_trace(f, b, k, eps, P, node):
         n2 = right.n
         assert n1 + n2 == n
 
-        new_left = estimate_trace(f, b, k, eps, P[:,:n1], left)
-        new_right = estimate_trace(f, b, k, eps, P[:,n1:], right)
+        new_left = estimate_trace(f, b, P[:,:n1], left)
+        new_right = estimate_trace(f, b, P[:,n1:], right)
 
         trace_mean = new_left.trace_mean + new_right.trace_mean
         trace_std = LA.norm([new_left.trace_std, new_right.trace_std])
@@ -59,20 +55,14 @@ def estimate_trace(f, b, k, eps, P, node):
 
 
     n = node.n
-    mean = 0.0
-    std = 1.0
-    xs = NP.empty(0)
-
     random = numpy.random.RandomState(seed=1)
 
-    while k*std > eps * mean:
-        V = 2 * random.randint(0, 2, [n,b]).astype(P.dtype) - 1
-        W = P.H * f(P*V)
-        xs = NP.append( xs, NP.einsum('ij,ij->j', V, W, casting='no') )
+    V = 2 * random.randint(0, 2, [n,b]).astype(P.dtype) - 1
+    W = P.H * f(P*V)
+    xs = NP.einsum('ij,ij->j', V, W, casting='no')
 
-        mean = NP.mean(xs)
-        std = NP.std(xs, ddof=1)
-
+    mean = NP.mean(xs)
+    std = NP.std(xs, ddof=1)
 
     new_node = copy.copy(node)
     new_node.trace_mean = mean
@@ -82,7 +72,7 @@ def estimate_trace(f, b, k, eps, P, node):
 
 
 
-def estimate_eigenvalue_count(node, K, M, lambda_1, lambda_c, d, k, eps, b=32):
+def estimate_eigenvalue_count(node, K, M, lambda_1, lambda_c, d, b=32):
     assert isinstance(node, binary_tree.Node)
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
@@ -92,20 +82,15 @@ def estimate_eigenvalue_count(node, K, M, lambda_1, lambda_c, d, k, eps, b=32):
     assert lambda_c > lambda_1
     assert isinstance(d, int)
     assert d > 0
-    assert isinstance(k, int)
-    assert k > 0
-    assert isinstance(eps, numbers.Real)
-    assert eps > 0
-    assert eps < 1
     assert isinstance(b, int)
-    assert b > 1
+    assert b > 0
 
 
     n = node.n
     f = polynomial.approximate_projection(d, lambda_1, lambda_c, K, M)
     P = SS.identity(n, format='csc')
 
-    new_node = estimate_trace(f, b, k, eps, P, node)
+    new_node = estimate_trace(f, b, P, node)
 
     assert isinstance(new_node, binary_tree.Node)
 
