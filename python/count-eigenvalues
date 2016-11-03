@@ -231,14 +231,28 @@ def main():
 
     K = K[:,perm][perm,:]
     M = M[:,perm][perm,:]
+    K = K[:,perm][perm,:]
+    M = M[:,perm][perm,:]
 
+    # estimate count
     a = lambda_c / s
     b = 2*a
     d = options.degree
 
+    t0 = time.clock()
     root = solver.estimate_eigenvalue_count(root, K, M, a, b, d)
+    t1 = time.clock()
+    mean = root.trace_mean
+    std = root.trace_std
 
-    print '{:8.2e} +/- {:10.4e}'.format(root.trace_mean, root.trace_std)
+    # compute exact size
+    k = int(NP.ceil(mean + std))
+    t2 = time.clock()
+    ds = LA.eigsh(A, M=B, k=k, sigma=0, v0=v0, return_eigenvectors=False)
+    t3 = time.clock()
+
+    fmt = '{:7.2f} ± {:6.2f} ({:6.1f}s) {:4d} ({:6.1f}s)'
+    print fmt.format(mean, std, t1-t0, NP.sum(ds <= lambda_c), t3-t2 )
 
 
 
