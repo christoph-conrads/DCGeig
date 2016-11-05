@@ -187,6 +187,13 @@ def sanitize_input(options, user_options):
     return options, A, B
 
 
+class SuperLL:
+    def __init__(self, A):
+        LU = LA.splu(A, diag_pivot_thresh=0.0)
+        self.LU = LU
+        self.shape = LU.shape
+        self.matvec = LU.solve
+
 
 def main():
     default_options = Options()
@@ -246,7 +253,9 @@ def main():
     k = int(NP.ceil(mean + std))
     v0 = NP.ones([n,1])
     t2 = time.clock()
-    ds = LA.eigsh(A, M=B, k=k, sigma=0, v0=v0, return_eigenvectors=False)
+    solve = LA.aslinearoperator( SuperLL(A) )
+    ds = LA.eigsh( \
+        A, M=B, k=k, sigma=0, v0=v0, return_eigenvectors=False, OPinv=solve)
     t3 = time.clock()
 
     fmt = '{:7.2f} ± {:6.2f} ({:6.1f}s) {:4d} ({:6.1f}s)'
