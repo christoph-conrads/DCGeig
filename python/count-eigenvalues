@@ -167,6 +167,7 @@ def sanitize_input(options, user_options):
     k_dirname = OP.dirname(k_path)
     k_basename = OP.basename(k_path)
     assert k_basename != ''
+    options.filename = k_basename
 
     if str.count(k_basename, 'k') == 1:
         m_basename = str.replace(k_basename, 'k', 'm')
@@ -258,8 +259,9 @@ def main():
         A, M=B, k=k, sigma=0, v0=v0, return_eigenvectors=False, OPinv=solve)
     t3 = time.clock()
 
-    fmt = '{:7.2f} ± {:6.2f} ({:6.1f}s) {:4d} ({:6.1f}s)'
-    print fmt.format(mean, std, t1-t0, NP.sum(ds <= lambda_c), t3-t2 )
+    fmt = '{:20s} {:7.2f} ± {:6.2f} ({:6.1f}s) {:4d} ({:6.1f}s)'
+    filename = options.filename
+    print fmt.format(filename, mean, std, t1-t0, NP.sum(ds <= lambda_c), t3-t2 )
 
 
 
