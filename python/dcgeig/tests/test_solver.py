@@ -41,13 +41,17 @@ class Test_estimate_eigenvalue_count(unittest.TestCase):
         left_child = binary_tree.make_leaf_node(4)
         right_child = binary_tree.make_leaf_node(5)
         root = binary_tree.make_internal_node(left_child, right_child, n)
-        eps = 0.05
+        l = 0.75
+        r = 2 * l
+        d = 50
+        b = 32
 
-        new_root = solver.estimate_eigenvalue_count(root, K, M, 0.75, 1.5, 50)
+        new_root = solver.estimate_eigenvalue_count(root, K, M, l, r, d, b)
 
         mu = new_root.trace_mean
         std = new_root.trace_std
 
+        eps = 0.05
         self.assertTrue( abs(mu - 1) < eps )
         self.assertTrue( std < mu )
 

@@ -72,7 +72,7 @@ def estimate_trace(f, b, P, node):
 
 
 
-def estimate_eigenvalue_count(node, K, M, lambda_1, lambda_c, d, b=32):
+def estimate_eigenvalue_count(node, K, M, lambda_1, lambda_c, d, b):
     assert isinstance(node, binary_tree.Node)
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
