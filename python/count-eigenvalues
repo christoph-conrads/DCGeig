@@ -98,6 +98,13 @@ def make_argument_parser(default_options):
         type=check_if_positive_integer,
         help='the degree of the polynomial approximation to the projection')
 
+    parser.add_argument(
+        '--num-trial-vectors',
+        metavar='n_trial',
+        default=32,
+        type=check_if_positive_integer,
+        help='the number of trial vectors used for each trace estimate')
+
 
     parser.add_argument(
         '-q', '--quiet',
@@ -144,6 +151,7 @@ def sanitize_input(options, user_options):
     options.k_path = normalize_path( user_options['file'] )
     options.n_direct = user_options['max_dim_direct_solve']
     options.degree = user_options['degree']
+    options.n_trial_vectors = user_options['num_trial_vectors']
     options.be_quiet = user_options['quiet']
 
 
@@ -238,9 +246,10 @@ def main():
     a = lambda_c / s
     b = 2*a
     d = options.degree
+    n_trial = options.n_trial_vectors
 
     t0 = time.clock()
-    root = solver.estimate_eigenvalue_count(root, K, M, a, b, d)
+    root = solver.estimate_eigenvalue_count(root, K, M, a, b, d, n_trial)
     t1 = time.clock()
     mean = root.trace_mean
     std = root.trace_std
