@@ -12,7 +12,6 @@ import numpy as NP
 
 import scipy.sparse as SS
 
-import dcgeig.binary_tree as binary_tree
 import dcgeig.solver as solver
 
 
@@ -20,15 +19,13 @@ import dcgeig.solver as solver
 class Test_estimate_trace(unittest.TestCase):
     def test_simple(self):
         n = 3
-        m = n-1
-        f = lambda x: x
         b = 2
-        P = SS.eye(n, m)
-        node = binary_tree.make_leaf_node(m)
+        f = lambda x: x
 
-        node = solver.estimate_trace(f, b, P, node)
+        mean, std = solver.estimate_trace(f, n, b)
 
-        self.assertEqual( node.trace_mean, m )
+        self.assertEqual(mean, 3)
+        self.assertTrue(std < mean)
 
 
 
@@ -38,22 +35,16 @@ class Test_estimate_eigenvalue_count(unittest.TestCase):
         K = SS.diags(NP.arange(1, n+1), dtype=NP.float64, format='csc')
         M = SS.identity(n)
 
-        left_child = binary_tree.make_leaf_node(4)
-        right_child = binary_tree.make_leaf_node(5)
-        root = binary_tree.make_internal_node(left_child, right_child, n)
         l = 0.75
         r = 2 * l
         d = 50
-        b = 32
+        b = 5
 
-        new_root = solver.estimate_eigenvalue_count(root, K, M, l, r, d, b)
-
-        mu = new_root.trace_mean
-        std = new_root.trace_std
+        mean, std = solver.estimate_eigenvalue_count(K, M, l, r, d, b)
 
         eps = 0.05
-        self.assertTrue( abs(mu - 1) < eps )
-        self.assertTrue( std < mu )
+        self.assertTrue( abs(mean - 1) < eps )
+        self.assertTrue( std < mean )
 
 
 

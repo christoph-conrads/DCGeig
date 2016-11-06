@@ -228,16 +228,6 @@ def main():
     M = SS.csc_matrix(D * (s*M) * D)
 
 
-    # make tree
-    n_direct = options.n_direct
-    G = sparse_tools.matrix_to_graph(K)
-    root, perm = sparse_tools.multilevel_bisection(G, n_direct)
-
-    K = K[:,perm][perm,:]
-    M = M[:,perm][perm,:]
-    K = K[:,perm][perm,:]
-    M = M[:,perm][perm,:]
-
     # estimate count
     a = lambda_c / s
     b = 2*a
@@ -245,10 +235,9 @@ def main():
     n_trial = options.n_trial_vectors
 
     t0 = time.clock()
-    root = solver.estimate_eigenvalue_count(root, K, M, a, b, d, n_trial)
+    mean, std = solver.estimate_eigenvalue_count(K, M, a, b, d, n_trial)
     t1 = time.clock()
-    mean = root.trace_mean
-    std = root.trace_std
+
 
     # print data
     fmt = '{:20s} {:6d} {:8.2e} {:7.2f} ± {:6.2f} {:6.1f}s'

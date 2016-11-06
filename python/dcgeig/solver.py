@@ -12,68 +12,36 @@ import copy
 
 import numpy as NP
 import numpy.random
-import numpy.linalg as LA
 
 import scipy.sparse as SS
 
-import dcgeig.binary_tree as binary_tree
 import dcgeig.polynomial as polynomial
-import dcgeig.sparse_tools as sparse_tools
 
 
 
-def estimate_trace(f, b, P, node):
+def estimate_trace(f, n, b, dtype=NP.float64):
     assert callable(f)
+    assert isinstance(n, int)
+    assert n > 0
     assert isinstance(b, int)
     assert b > 0
-    assert SS.isspmatrix(P)
-    assert isinstance(node, binary_tree.Node)
-    assert P.shape[0] >= P.shape[1]
-    assert P.shape[1] == node.n
+    assert b <= n
 
 
-    if not node.is_leaf_node():
-        left = node.left_child
-        right = node.right_child
-
-        n = node.n
-        n1 = left.n
-        n2 = right.n
-        assert n1 + n2 == n
-
-        new_left = estimate_trace(f, b, P[:,:n1], left)
-        new_right = estimate_trace(f, b, P[:,n1:], right)
-
-        trace_mean = new_left.trace_mean + new_right.trace_mean
-        trace_std = LA.norm([new_left.trace_std, new_right.trace_std])
-
-        new_node = binary_tree.make_internal_node(new_left, new_right, n)
-        new_node.trace_mean = trace_mean
-        new_node.trace_std = trace_std
-
-        return new_node
-
-
-    n = node.n
     random = numpy.random.RandomState(seed=1)
 
-    V = 2 * random.randint(0, 2, [n,b]).astype(P.dtype) - 1
-    W = P.H * f(P*V)
+    V = 2 * random.randint(0, 2, [n,b]).astype(dtype) - 1
+    W = f(V)
     xs = NP.einsum('ij,ij->j', V, W, casting='no')
 
     mean = NP.mean(xs)
     std = NP.std(xs, ddof=1)
 
-    new_node = copy.copy(node)
-    new_node.trace_mean = mean
-    new_node.trace_std = std
-
-    return new_node
+    return mean, std
 
 
 
-def estimate_eigenvalue_count(node, K, M, lambda_1, lambda_c, d, b):
-    assert isinstance(node, binary_tree.Node)
+def estimate_eigenvalue_count(K, M, lambda_1, lambda_c, d, b):
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
     assert isinstance(lambda_1, numbers.Real)
@@ -85,13 +53,9 @@ def estimate_eigenvalue_count(node, K, M, lambda_1, lambda_c, d, b):
     assert isinstance(b, int)
     assert b > 0
 
-
-    n = node.n
+    n = K.shape[0]
     f = polynomial.approximate_projection(d, lambda_1, lambda_c, K, M)
-    P = SS.identity(n, format='csc')
 
-    new_node = estimate_trace(f, b, P, node)
+    mean, std = estimate_trace(f, n, b, K.dtype)
 
-    assert isinstance(new_node, binary_tree.Node)
-
-    return new_node
+    return mean, std
