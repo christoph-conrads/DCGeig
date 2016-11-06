@@ -2,6 +2,7 @@ install(FILES
 		__init__.py
 		test_binary_tree.py
 		test_error_analysis.py
+		test_linalg.py
 		test_metis.py
 		test_polynomial.py
 		test_solver.py

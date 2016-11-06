@@ -8,6 +8,7 @@ install(FILES
 		binary_tree.py
 		error_analysis.py
 		gallery.py
+		linalg.py
 		options.py
 		polynomial.py
 		solver.py
