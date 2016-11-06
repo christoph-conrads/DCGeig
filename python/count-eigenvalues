@@ -250,19 +250,10 @@ def main():
     mean = root.trace_mean
     std = root.trace_std
 
-    # compute exact size
-    k = int(NP.ceil(mean + std))
-    v0 = NP.ones([n,1])
-    t2 = time.clock()
-    solve = LA.aslinearoperator( SuperLL(A) )
-    ds = LA.eigsh( \
-        A, M=B, k=k, sigma=0, v0=v0, return_eigenvectors=False, OPinv=solve)
-    t3 = time.clock()
-
-    fmt = '{:20s} {:6d} {:8.2e} {:7.2f} ± {:6.2f} {:6.1f}s  {:4d} {:6.1f}s'
+    # print data
+    fmt = '{:20s} {:6d} {:8.2e} {:7.2f} ± {:6.2f} {:6.1f}s'
     filename = options.filename
-    n_c = NP.sum(ds <= lambda_c)
-    print fmt.format(filename, n, lambda_c, mean, std, t1-t0, n_c, t3-t2 )
+    print fmt.format(filename, n, lambda_c, mean, std, t1-t0)
 
 
 
