@@ -175,3 +175,25 @@ def multilevel_nested_dissection(A, n_direct):
     tree = binary_tree.make_internal_node(left_sizes, right_sizes, n)
 
     return tree, perm_ret
+
+
+
+def get_submatrices_bisection(node, A):
+    assert isinstance(node, binary_tree.Node)
+    assert not node.is_leaf_node()
+    assert SS.isspmatrix_csc(A)
+    assert utils.is_hermitian(A)
+
+    n = node.n
+    n1 = node.left_child.n
+    n2 = node.right_child.n
+
+    assert n == A.shape[0]
+    assert n == n1 + n2
+
+    A_1 = A[:,:n1]
+    A11 = A_1[:n1,:]
+    A12 = A_1[n1:,:]
+    A22 = A[:,n1:][n1:,:]
+
+    return A11, A22, A12
