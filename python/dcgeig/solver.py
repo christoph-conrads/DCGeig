@@ -11,11 +11,16 @@ import numbers
 import copy
 
 import numpy as NP
+import numpy.linalg as NL
+import numpy.matlib as ML
 import numpy.random
 
 import scipy.sparse as SS
+import scipy.sparse.linalg as LA
 
+import dcgeig.linalg as linalg
 import dcgeig.polynomial as polynomial
+import dcgeig.utils as utils
 
 
 
@@ -59,3 +64,41 @@ def estimate_eigenvalue_count(K, M, lambda_1, lambda_c, d, b):
     mean, std = estimate_trace(f, n, b, K.dtype)
 
     return mean, std
+
+
+
+def compute_largest_eigenvalue(K, M, S, tol=0):
+    assert SS.isspmatrix(K)
+    assert utils.is_hermitian(K)
+    assert SS.isspmatrix(M)
+    assert utils.is_hermitian(M)
+    assert isinstance(S, ML.matrix)
+    assert K.shape[0] == S.shape[0]
+    assert K.shape[0] > S.shape[1]
+    assert isinstance(tol, numbers.Real)
+    assert tol >= 0
+    assert tol < 1
+
+    m = S.shape[1]
+    B = S.H * (M * S)
+    L = NL.cholesky(B)
+
+
+    def f(self, u):
+        assert u.shape[0] == m
+
+        v = NL.solve(L.H, u)
+        v = NP.reshape(v, [m,1])
+        v = S.H * (K * (S * v))
+        v = NL.solve(L, v)
+
+        return v
+
+    Solver = type('InlineGEPSolver', (object,), {'matvec': f, 'shape': (m,m)})
+    operator = LA.aslinearoperator( Solver() )
+
+    v0 = NP.ones([m,1], dtype=K.dtype)
+
+    d = LA.eigsh(operator, k=1, v0=v0, tol=tol, return_eigenvectors=False)
+
+    return max(d)

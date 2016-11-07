@@ -9,6 +9,7 @@
 import unittest
 
 import numpy as NP
+import numpy.matlib as ML
 
 import scipy.sparse as SS
 
@@ -45,6 +46,28 @@ class Test_estimate_eigenvalue_count(unittest.TestCase):
         eps = 0.05
         self.assertTrue( abs(mean - 1) < eps )
         self.assertTrue( std < mean )
+
+
+
+class Test_compute_largest_eigenvalue(unittest.TestCase):
+    def test_simple(self):
+        n = 5
+        m = 3
+
+        K = SS.diags(NP.arange(1, n+1), dtype=NP.float64, format='lil')
+        K[-2] = 0
+        K = SS.csc_matrix(K)
+
+        M = SS.identity(n, format='lil')
+        M[-1] = 0
+        M = SS.csc_matrix(M)
+
+        S = ML.eye(n, m, dtype=K.dtype)
+        tol = 1e-2
+
+        d_max = solver.compute_largest_eigenvalue(K, M, S, tol=tol)
+
+        self.assertTrue( abs(d_max - 3) <= tol )
 
 
 
