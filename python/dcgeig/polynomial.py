@@ -94,6 +94,8 @@ def evaluate_matrix_polynomial(ps, c1, c2, solve, A, B, U):
     assert SS.isspmatrix(A)
     assert SS.isspmatrix(B)
     assert isinstance(U, NP.ndarray)
+    assert A.shape[0] == B.shape[0]
+    assert A.shape[0] == U.shape[0]
 
     cs = NPC.chebtrim(ps)
 
