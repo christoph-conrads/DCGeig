@@ -84,8 +84,8 @@ def compute_chebyshev_step_coefficients(d, a, b):
 
 
 # this function implements the Clenshaw algorithm for Chebyshev polynomials
-def evaluate_matrix_polynomial(cs, c1, c2, solve, A, B, U):
-    assert isinstance(cs, NP.ndarray)
+def evaluate_matrix_polynomial(ps, c1, c2, solve, A, B, U):
+    assert isinstance(ps, NP.ndarray)
     assert isinstance(c1, numbers.Real)
     assert NP.isfinite(c1)
     assert isinstance(c2, numbers.Real)
@@ -94,6 +94,8 @@ def evaluate_matrix_polynomial(cs, c1, c2, solve, A, B, U):
     assert SS.isspmatrix(A)
     assert SS.isspmatrix(B)
     assert isinstance(U, NP.ndarray)
+
+    cs = NPC.chebtrim(ps)
 
     d = len(cs)-1
     C = c1*B - c2*A
