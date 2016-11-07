@@ -70,6 +70,18 @@ class Test_compute_largest_eigenvalue(unittest.TestCase):
         self.assertTrue( abs(d_max - 3) <= tol )
 
 
+    # arpack does not work with 1x1 matrices
+    def test_1by1(self):
+        n = 3
+        K = SS.spdiags(1.0*NP.arange(1,n+1), 0, n, n)
+        M = SS.identity(n, dtype=K.dtype)
+        v = ML.eye(n, 1)
+
+        d = solver.compute_largest_eigenvalue(K, M, v)
+
+        self.assertEqual(d, 1)
+
+
 
 if __name__ == '__main__':
     unittest.main()

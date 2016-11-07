@@ -80,9 +80,14 @@ def compute_largest_eigenvalue(K, M, S, tol=0):
     assert tol < 1
 
     m = S.shape[1]
+
+
+    if m == 1:
+        return (S.H * K * S) / (S.H * M * S)
+
+
     B = S.H * (M * S)
     L = NL.cholesky(B)
-
 
     def f(self, u):
         assert u.shape[0] == m
