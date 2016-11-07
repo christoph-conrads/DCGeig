@@ -17,7 +17,6 @@ import scipy.sparse.linalg as LA
 
 import dcgeig.binary_tree as binary_tree
 import dcgeig.sparse_tools as sparse_tools
-import dcgeig.error_analysis as error_analysis
 
 
 
@@ -253,26 +252,6 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         self.assertTrue( NP.all(C[n_1-1,:n_1] < 0) )
         self.assertTrue( NP.all(C[:n_1,n_1-1] < 0) )
         self.assertTrue( C[n-2,n-2] < 0 )
-
-
-
-class Test_rayleigh_ritz(unittest.TestCase):
-    def test_simple(self):
-        n = 5
-        m = 2
-
-        ds = NP.arange(1.0 * n)
-        K = SS.spdiags(ds, 0, n, n, format='csc')
-        M = SS.identity(n, format='lil')
-
-        S = ML.zeros( [n,m] )
-        S[2:4,:] = NP.array( [[1, 1], [1, 0]] )
-
-        d, X = sparse_tools.rayleigh_ritz(K, M, S)
-        eta, delta = error_analysis.compute_errors(K, M, d, X)
-
-        eps = NP.finfo(d.dtype).eps
-        self.assertTrue( NP.all(eta <= n * eps) )
 
 
 

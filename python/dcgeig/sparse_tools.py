@@ -175,37 +175,3 @@ def multilevel_nested_dissection(A, n_direct):
     tree = binary_tree.make_internal_node(left_sizes, right_sizes, n)
 
     return tree, perm_ret
-
-
-
-def rayleigh_ritz(K, M, S=None):
-    assert SS.isspmatrix(K)
-    assert SS.isspmatrix(M)
-
-    if S is None:
-        A = K.todense()
-        B = M.todense()
-        Q = SS.identity(K.shape[0], dtype=K.dtype)
-    else:
-        assert isinstance(S, ML.matrix)
-        assert S.shape[0] > S.shape[1]
-
-        Q, _ = scipy.linalg.qr(S, mode='economic')
-        Q = ML.matrix(Q)
-
-        A = utils.force_hermiticity(Q.H * K * Q)
-        B = utils.force_hermiticity(Q.H * M * Q)
-
-    d, X_Q = dcgeig.deflation(A, B)
-
-    t = NP.isfinite(d)
-    d = d[t]
-    X_Q = X_Q[:,t]
-
-    i = NP.argsort(d)
-    d = d[i]
-    X_Q = X_Q[:,i]
-
-    X = Q * X_Q
-
-    return d, X

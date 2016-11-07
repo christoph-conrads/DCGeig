@@ -8,7 +8,7 @@
 
 import unittest
 
-import dcgeig.gallery as gallery
+import dcgeig.error_analysis as error_analysis
 import dcgeig.linalg as linalg
 
 import numpy as NP
@@ -67,6 +67,26 @@ class Test_orthogonalize(unittest.TestCase):
             self.assertEqual( Q[0,0], 1 )
             self.assertTrue( NL.norm(Q.H * Q - NP.eye(n)) <= n*eps )
             self.assertEqual( NL.norm(Q[-1,:]), 0 )
+
+
+
+class Test_rayleigh_ritz(unittest.TestCase):
+    def test_simple(self):
+        n = 5
+        m = 2
+
+        ds = NP.arange(1.0 * n)
+        K = SS.spdiags(ds, 0, n, n, format='csc')
+        M = SS.identity(n, format='lil')
+
+        S = ML.zeros( [n,m] )
+        S[2:4,:] = NP.array( [[1, 1], [1, 0]] )
+
+        d, X = linalg.rayleigh_ritz(K, M, S)
+        eta, delta = error_analysis.compute_errors(K, M, d, X)
+
+        eps = NP.finfo(d.dtype).eps
+        self.assertTrue( NP.all(eta <= n * eps) )
 
 
 
