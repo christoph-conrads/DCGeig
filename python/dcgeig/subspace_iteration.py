@@ -27,6 +27,8 @@ def inverse_iteration( \
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
     assert isinstance(B, NP.ndarray)
+    assert K.shape[0] == B.shape[0]
+    assert M.shape[0] == B.shape[0]
     assert isinstance(sigma, numbers.Real)
     assert sigma > 0
     assert isinstance(polynomial_degree, int)
