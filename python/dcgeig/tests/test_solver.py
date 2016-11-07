@@ -8,6 +8,8 @@
 
 import unittest
 
+import numbers
+
 import numpy as NP
 import numpy.matlib as ML
 
@@ -67,6 +69,7 @@ class Test_compute_largest_eigenvalue(unittest.TestCase):
 
         d_max = solver.compute_largest_eigenvalue(K, M, S, tol=tol)
 
+        self.assertIsInstance(d_max, numbers.Real)
         self.assertTrue( abs(d_max - 3) <= tol )
 
 
@@ -79,6 +82,7 @@ class Test_compute_largest_eigenvalue(unittest.TestCase):
 
         d = solver.compute_largest_eigenvalue(K, M, v)
 
+        self.assertIsInstance(d, numbers.Real)
         self.assertEqual(d, 1)
 
 

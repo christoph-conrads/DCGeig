@@ -83,7 +83,9 @@ def compute_largest_eigenvalue(K, M, S, tol=0):
 
 
     if m == 1:
-        return (S.H * K * S) / (S.H * M * S)
+        a = (S.H * K * S)[0,0]
+        b = (S.H * M * S)[0,0]
+        return a/b
 
 
     B = S.H * (M * S)
