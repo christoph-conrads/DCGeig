@@ -9,16 +9,18 @@
 import numbers
 
 import numpy as NP
-import numpy.matlib as ML
 import numpy.linalg
-import scipy.sparse as SS
+import numpy.matlib as ML
+
 import scipy.linalg
+import scipy.sparse as SS
+import scipy.sparse.csgraph
 import scipy.sparse.linalg as LA
 
 import dcgeig
-import dcgeig.utils as utils
-import dcgeig.metis as metis
 import dcgeig.binary_tree as binary_tree
+import dcgeig.metis as metis
+import dcgeig.utils as utils
 
 
 
@@ -197,3 +199,54 @@ def get_submatrices_bisection(node, A):
     A22 = A[:,n1:][n1:,:]
 
     return A11, A22, A12
+
+
+
+# This function finds all connected components in the graph induced by |K|+|M|
+# and merges all nodes without edges into one component.
+def get_subproblems(K, M):
+    assert utils.is_hermitian(K)
+    assert utils.is_hermitian(M)
+
+    n = K.shape[0]
+    assert n > 0
+
+
+    # construct induced graph with diagonal entries set to zero
+    # (no self-loops)
+    U = abs(SS.triu(K, 1)) + abs(SS.triu(M, 1))
+    G = U + U.T
+    assert NP.isrealobj(G)
+
+
+    # find disconnected nodes
+    t = LA.norm(G, ord=float('inf'), axis=0) == 0
+
+
+    if NP.all(t):
+        return 1, NP.full(n, 0, dtype=int)
+
+
+    # find connected components
+    H = G[:,~t][~t,:]
+    l_H, labels_H = scipy.sparse.csgraph.connected_components(H, directed=False)
+
+    assert max(labels_H) < l_H
+
+    # compute return values
+    if NP.any(t):
+        l = l_H + 1
+
+        labels = NP.full( n, NP.nan, dtype=labels_H.dtype )
+        labels[t] = l_H
+        labels[~t] = labels_H
+    else:
+        l = l_H
+        labels = labels_H
+
+    assert l >= 1
+    assert labels.size == n
+    assert NP.all( labels >= 0 )
+    assert NP.all( labels < l )
+
+    return l, labels

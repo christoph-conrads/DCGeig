@@ -255,5 +255,45 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
 
 
 
+class Test_get_subproblems(unittest.TestCase):
+    def test_simple(self):
+        K = SS.csc_matrix([
+            [1, 0, 0, 0, 0, 0],
+            [0, 2, 1, 0, 0, 0],
+            [0, 1, 3, 0, 0, 0],
+            [0, 0, 0, 4, 0, 0],
+            [0, 0, 0, 0, 5, 0],
+            [0, 0, 0, 0, 0, 6]
+        ], dtype=NP.complex64)
+        M = SS.csc_matrix([
+            [1, 0, 0, 0, 0, 0],
+            [0, 2, 0, 0, 0, 0],
+            [0, 0, 3, 0, 0, 0],
+            [0, 0, 0, 4, 0-1j, 0],
+            [0, 0, 0, 0+1j, 5, 0],
+            [0, 0, 0, 0, 0, 6]
+        ], dtype=NP.complex64)
+
+        l, labels = sparse_tools.get_subproblems(K, M)
+
+        self.assertEqual( l, 3 )
+        self.assertEqual( labels[0], labels[-1] )
+        self.assertEqual( labels[1], labels[2] )
+        self.assertEqual( labels[3], labels[4] )
+        self.assertEqual( labels.size, K.shape[0] )
+
+
+    def test_diagonal(self):
+        n = 3
+        A = SS.identity(n, dtype=NP.complex128)
+
+        l, labels = sparse_tools.get_subproblems(A, A)
+
+        self.assertEqual( l, 1 )
+        self.assertTrue( NP.all(labels == 0) )
+        self.assertEqual( labels.size, n )
+
+
+
 if __name__ == '__main__':
     unittest.main()
