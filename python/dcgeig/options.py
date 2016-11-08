@@ -13,5 +13,4 @@ import numpy as NP
 
 class Options:
     def __init__(self):
-        self.n_direct = 1024
         self.max_num_iterations = 10
