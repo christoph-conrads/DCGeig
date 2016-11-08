@@ -101,7 +101,7 @@ def make_argument_parser(default_options):
     parser.add_argument(
         '--num-trial-vectors',
         metavar='n_trial',
-        default=32,
+        default=50,
         type=check_if_positive_integer,
         help='the number of trial vectors used for each trace estimate')
 
