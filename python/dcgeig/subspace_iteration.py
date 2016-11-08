@@ -8,6 +8,8 @@
 
 import numbers
 
+import dcgeig.error_analysis as error_analysis
+import dcgeig.linalg as linalg
 import dcgeig.polynomial as polynomial
 import dcgeig.utils as utils
 
@@ -66,38 +68,39 @@ def inverse_iteration( \
 
 
 
-def execute(max_num_iterations, lambda_c, do_stop, LU, K, M, d, X, eta, delta):
+def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
+    assert callable(solve)
+    assert SS.isspmatrix(K)
+    assert SS.isspmatrix(M)
+    assert isinstance(X, NP.ndarray)
+    assert X.shape[0] == K.shape[0]
+    assert isinstance(lambda_c, numbers.Real)
+    assert lambda_c > 0
+    assert isinstance(eta_max, numbers.Real)
+    assert eta_max > 0
+    assert eta_max < 1
+    assert isinstance(delta_max, numbers.Real)
+    assert delta_max > 0
+    assert delta_max < 1
     assert isinstance(max_num_iterations, int)
     assert max_num_iterations > 0
-    assert SS.isspmatrix_csc(K)
-    assert utils.is_hermitian(K)
-    assert SS.isspmatrix(M)
-    assert utils.is_hermitian(M)
-    assert d.size == X.shape[1]
-    assert d.size == eta.size
-    assert d.size == delta.size
 
-    poly_degree = 2
-
-    f = LU.solve
-
-    wallclock_time_sle = 0
-    wallclock_time_rr = 0
+    d_max = linalg.compute_largest_eigenvalue(K, M, X)
 
     for i in range(1, max_num_iterations+1):
-        wallclock_time_sle_start = time.time()
-        inverse_iteration( \
-            lambda_c, poly_degree, f, K, M, d, X, overwrite_b=True)
-        wallclock_time_sle += time.time() - wallclock_time_sle_start
+        inverse_iteration(solve, K, M, X, 2*d_max, overwrite_b=True)
 
-        wallclock_time_rr_start = time.time()
-        d[:], X[:,:], eta[:], delta[:] = tools.rayleigh_ritz(K, M, X)
-        wallclock_time_rr += time.time() - wallclock_time_rr_start
+        d, X = linalg.rayleigh_ritz(K, M, X)
+        eta, delta = error_analysis.compute_errors(K, M, d, X)
 
-        if do_stop(d, X, eta, delta):
+        t = d-delta <= lambda_c
+
+        if max(eta[t]) < eta_max and max(delta[t]/d[t]) < delta_max:
             break
+
+        d_max = max(d)
 
     assert not NP.any(NP.isinf(d))
     assert not NP.any(NP.isnan(d))
 
-    return i, wallclock_time_sle, wallclock_time_rr
+    return d[t], X[:,t]

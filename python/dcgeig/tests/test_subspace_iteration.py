@@ -8,7 +8,9 @@
 
 import unittest
 
-import dcgeig.subspace_iteration as SI
+import dcgeig.error_analysis as error_analysis
+import dcgeig.gallery as gallery
+import dcgeig.subspace_iteration as subspace_iteration
 
 import numpy as NP
 import numpy.matlib as ML
@@ -16,6 +18,7 @@ import numpy.random
 
 import scipy.linalg as SL
 import scipy.sparse as SS
+import scipy.sparse.linalg as LA
 
 
 
@@ -41,16 +44,49 @@ class Test_inverse_iteration(unittest.TestCase):
 
         tol = 0.99
 
-        x = SI.inverse_iteration(solve, K, M, b, 10*min(ds))
+        x = subspace_iteration.inverse_iteration(solve, K, M, b, 10*min(ds))
         x = x / SL.norm(x)
 
         self.assertTrue( X[:,0].H * x > tol )
         self.assertEqual( x.dtype, b.dtype )
 
         y = ML.copy(b)
-        ret = SI.inverse_iteration(solve, K, M, y, 10*min(ds), overwrite_b=True)
+        ret = subspace_iteration.inverse_iteration( \
+                solve, K, M, y, 10*min(ds), overwrite_b=True)
         y = y / SL.norm(y)
 
         self.assertTrue( X[:,0].H * y > tol )
         self.assertEqual( y.dtype, b.dtype )
         self.assertEqual( SL.norm(x-y), 0 )
+
+
+
+class Test_subspace_iteration(unittest.TestCase):
+    def test_FDM_Laplacian_1D(self):
+        n = 5
+        K = gallery.fdm_laplacian_1D(n)
+        M = SS.identity(n)
+        solve = lambda b: LA.spsolve(K, b).reshape(b.shape)
+
+        # test with a subspace of dimension 2, one desired eigenpair,
+        # eigenvector for smallest eigenvalue in search space
+        xs = NP.sin(NP.pi * NP.arange(1,n+1) / (n+1))
+        b = ML.matrix( [xs, NP.ones(n)] ).H
+
+        d_min = 2 * NP.pi**2
+
+        d, X = subspace_iteration.execute(solve, K, M, b, 1.5*d_min, 1e-8, 1e-2)
+
+        self.assertEqual( d.size, 1 )
+        self.assertEqual( X.shape[0], K.shape[0] )
+        self.assertEqual( X.shape[1], d.size )
+
+        eta, delta = error_analysis.compute_errors(K, M, d, X)
+
+        self.assertTrue( eta < 1e-15 )
+        self.assertTrue( delta < 1e-13 )
+
+
+
+if __name__ == '__main__':
+    unittest.main()
