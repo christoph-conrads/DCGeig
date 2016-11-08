@@ -6,6 +6,8 @@
 # This file is part of DCGeig and it is subject to the terms of the DCGeig
 # license. See http://DCGeig.tech/license for a copy of this license.
 
+import numbers
+
 import dcgeig
 import dcgeig.utils as utils
 
@@ -84,3 +86,48 @@ def rayleigh_ritz(K, M, S=None):
     X = Q * X_Q
 
     return d, X
+
+
+
+def compute_largest_eigenvalue(K, M, S, tol=0):
+    assert SS.isspmatrix(K)
+    assert utils.is_hermitian(K)
+    assert SS.isspmatrix(M)
+    assert utils.is_hermitian(M)
+    assert isinstance(S, ML.matrix)
+    assert K.shape[0] == S.shape[0]
+    assert K.shape[0] > S.shape[1]
+    assert isinstance(tol, numbers.Real)
+    assert tol >= 0
+    assert tol < 1
+
+    m = S.shape[1]
+
+
+    if m == 1:
+        a = (S.H * K * S)[0,0]
+        b = (S.H * M * S)[0,0]
+        return a/b
+
+
+    B = S.H * (M * S)
+    L = NL.cholesky(B)
+
+    def f(self, u):
+        assert u.shape[0] == m
+
+        v = NL.solve(L.H, u)
+        v = NP.reshape(v, [m,1])
+        v = S.H * (K * (S * v))
+        v = NL.solve(L, v)
+
+        return v
+
+    Solver = type('InlineGEPSolver', (object,), {'matvec': f, 'shape': (m,m)})
+    operator = LA.aslinearoperator( Solver() )
+
+    v0 = NP.ones([m,1], dtype=K.dtype)
+
+    d = LA.eigsh(operator, k=1, v0=v0, tol=tol, return_eigenvectors=False)
+
+    return max(d)

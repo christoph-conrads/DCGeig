@@ -8,10 +8,7 @@
 
 import unittest
 
-import numbers
-
 import numpy as NP
-import numpy.matlib as ML
 
 import scipy.linalg as SL
 import scipy.sparse as SS
@@ -127,42 +124,6 @@ class Test_compute_search_space(unittest.TestCase):
 
         self.assertTrue( r >= (1.0/a)**2 + (1.0/b)**2 )
         self.assertTrue( r < (1.0/a)**2 + (2.0/b)**2 )
-
-
-
-class Test_compute_largest_eigenvalue(unittest.TestCase):
-    def test_simple(self):
-        n = 5
-        m = 3
-
-        K = SS.diags(NP.arange(1, n+1), dtype=NP.float64, format='lil')
-        K[-2] = 0
-        K = SS.csc_matrix(K)
-
-        M = SS.identity(n, format='lil')
-        M[-1] = 0
-        M = SS.csc_matrix(M)
-
-        S = ML.eye(n, m, dtype=K.dtype)
-        tol = 1e-2
-
-        d_max = solver.compute_largest_eigenvalue(K, M, S, tol=tol)
-
-        self.assertIsInstance(d_max, numbers.Real)
-        self.assertTrue( abs(d_max - 3) <= tol )
-
-
-    # arpack does not work with 1x1 matrices
-    def test_1by1(self):
-        n = 3
-        K = SS.spdiags(1.0*NP.arange(1,n+1), 0, n, n)
-        M = SS.identity(n, dtype=K.dtype)
-        v = ML.eye(n, 1)
-
-        d = solver.compute_largest_eigenvalue(K, M, v)
-
-        self.assertIsInstance(d, numbers.Real)
-        self.assertEqual(d, 1)
 
 
 

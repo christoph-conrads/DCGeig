@@ -8,8 +8,6 @@
 
 import numbers
 
-import copy
-
 import numpy as NP
 import numpy.linalg as NL
 import numpy.matlib as ML
@@ -98,8 +96,8 @@ def compute_search_space(node, K, M, n_s, n_s_min):
     S2 = compute_search_space(node.right_child, K22, M22, n_s-n_s/2, n_s_min)
 
     # compute largest ev
-    d1_max = compute_largest_eigenvalue(K11, M11, S1, tol=1e-1)
-    d2_max = compute_largest_eigenvalue(K22, M22, S2, tol=1e-1)
+    d1_max = linalg.compute_largest_eigenvalue(K11, M11, S1, tol=1e-1)
+    d2_max = linalg.compute_largest_eigenvalue(K22, M22, S2, tol=1e-1)
     d_max = max(d1_max, d2_max)
 
     del K11; del M11
@@ -120,48 +118,3 @@ def compute_search_space(node, K, M, n_s, n_s_min):
         solve, K, M, S, 2*d_max, overwrite_b=True)
 
     return S
-
-
-
-def compute_largest_eigenvalue(K, M, S, tol=0):
-    assert SS.isspmatrix(K)
-    assert utils.is_hermitian(K)
-    assert SS.isspmatrix(M)
-    assert utils.is_hermitian(M)
-    assert isinstance(S, ML.matrix)
-    assert K.shape[0] == S.shape[0]
-    assert K.shape[0] > S.shape[1]
-    assert isinstance(tol, numbers.Real)
-    assert tol >= 0
-    assert tol < 1
-
-    m = S.shape[1]
-
-
-    if m == 1:
-        a = (S.H * K * S)[0,0]
-        b = (S.H * M * S)[0,0]
-        return a/b
-
-
-    B = S.H * (M * S)
-    L = NL.cholesky(B)
-
-    def f(self, u):
-        assert u.shape[0] == m
-
-        v = NL.solve(L.H, u)
-        v = NP.reshape(v, [m,1])
-        v = S.H * (K * (S * v))
-        v = NL.solve(L, v)
-
-        return v
-
-    Solver = type('InlineGEPSolver', (object,), {'matvec': f, 'shape': (m,m)})
-    operator = LA.aslinearoperator( Solver() )
-
-    v0 = NP.ones([m,1], dtype=K.dtype)
-
-    d = LA.eigsh(operator, k=1, v0=v0, tol=tol, return_eigenvectors=False)
-
-    return max(d)

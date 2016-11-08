@@ -6,6 +6,8 @@
 # This file is part of DCGeig and it is subject to the terms of the DCGeig
 # license. See http://DCGeig.tech/license for a copy of this license.
 
+import numbers
+
 import unittest
 
 import dcgeig.error_analysis as error_analysis
@@ -87,6 +89,42 @@ class Test_rayleigh_ritz(unittest.TestCase):
 
         eps = NP.finfo(d.dtype).eps
         self.assertTrue( NP.all(eta <= n * eps) )
+
+
+
+class Test_compute_largest_eigenvalue(unittest.TestCase):
+    def test_simple(self):
+        n = 5
+        m = 3
+
+        K = SS.diags(NP.arange(1, n+1), dtype=NP.float64, format='lil')
+        K[-2] = 0
+        K = SS.csc_matrix(K)
+
+        M = SS.identity(n, format='lil')
+        M[-1] = 0
+        M = SS.csc_matrix(M)
+
+        S = ML.eye(n, m, dtype=K.dtype)
+        tol = 1e-2
+
+        d_max = linalg.compute_largest_eigenvalue(K, M, S, tol=tol)
+
+        self.assertIsInstance(d_max, numbers.Real)
+        self.assertTrue( abs(d_max - 3) <= tol )
+
+
+    # arpack does not work with 1x1 matrices
+    def test_1by1(self):
+        n = 3
+        K = SS.spdiags(1.0*NP.arange(1,n+1), 0, n, n)
+        M = SS.identity(n, dtype=K.dtype)
+        v = ML.eye(n, 1)
+
+        d = linalg.compute_largest_eigenvalue(K, M, v)
+
+        self.assertIsInstance(d, numbers.Real)
+        self.assertEqual(d, 1)
 
 
 
