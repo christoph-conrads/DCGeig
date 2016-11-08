@@ -75,6 +75,7 @@ def compute_search_space(node, K, M, n_s, n_s_min):
     assert SS.isspmatrix(M)
     assert isinstance(n_s, int)
     assert n_s > 0
+    assert K.shape[0] > n_s
     assert isinstance(n_s_min, int)
     assert n_s_min > 0
 
