@@ -17,6 +17,7 @@ import scipy.linalg as SL
 import scipy.sparse as SS
 import scipy.sparse.linalg as LA
 
+import dcgeig.error_analysis as error_analysis
 import dcgeig.linalg as linalg
 import dcgeig.options
 import dcgeig.polynomial as polynomial
@@ -147,8 +148,11 @@ def execute(options, A, B, lambda_c):
             M = B[:,t][t,:]
 
             d, X = linalg.rayleigh_ritz(K, M)
+            eta, delta = error_analysis.compute_errors(K, M, d, X)
 
-            return d, X
+            u = d-delta <= lambda_c
+
+            return d[u], X[:,u], eta[u], delta[u]
 
 
         M = B[:,t][t,:]
@@ -186,10 +190,10 @@ def execute(options, A, B, lambda_c):
 
         LL = linalg.spll(K)
 
-        d, X = subspace_iteration.execute( \
+        d, X, eta, delta = subspace_iteration.execute( \
                 LL.solve, K, M, S, lambda_c/s, eta_max, delta_max)
 
-        return s*d, X
+        return s*d, X, eta, s*delta
 
 
     rs = map( call_solve_gep, range(l) )

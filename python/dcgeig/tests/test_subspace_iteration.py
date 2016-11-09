@@ -75,7 +75,8 @@ class Test_subspace_iteration(unittest.TestCase):
 
         d_min = 2 * NP.pi**2
 
-        d, X = subspace_iteration.execute(solve, K, M, b, 1.5*d_min, 1e-8, 1e-2)
+        d, X, _, _ = \
+            subspace_iteration.execute(solve, K, M, b, 1.5*d_min, 1e-8, 1e-2)
 
         self.assertEqual( d.size, 1 )
         self.assertEqual( X.shape[0], K.shape[0] )
