@@ -145,9 +145,6 @@ class Test_execute(unittest.TestCase):
                     [ 1, 0, 0, 0, 1,10]], dtype=dtype))
 
         options = dcgeig.options.Options()
-        options.n_direct = 1000
-        options.n_s_min = 30
-        options.eta_max = 1e-8
         options.delta_max = 1.0
 
         rs, labels = solver.execute(options, K, M, 1e-8)
@@ -180,8 +177,6 @@ class Test_execute(unittest.TestCase):
         options = dcgeig.options.Options()
         options.n_direct = 50
         options.n_s_min = 1
-        options.eta_max = 1e-8
-        options.delta_max = 1e-2
 
         sigma = NP.pi**2 * ( (2.0/a)**2 + (3.0/b)**2) + 1
         rs, labels = solver.execute(options, K, M, sigma)

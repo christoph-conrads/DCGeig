@@ -134,6 +134,10 @@ def execute(options, A, B, lambda_c):
     n = A.shape[0]
     n_direct = options.n_direct
     n_s_min = options.n_s_min
+
+    n_trial = options.num_trial_vectors
+    poly_degree = options.polynomial_degree
+
     eta_max = options.eta_max
     delta_max = options.delta_max
 
@@ -171,7 +175,8 @@ def execute(options, A, B, lambda_c):
         del G
 
         # count eigenvalues
-        mean, std = estimate_eigenvalue_count(K,M,lambda_c/s,2*lambda_c/s,50,50)
+        mean, std = estimate_eigenvalue_count( \
+            K, M, lambda_c/s, 2*lambda_c/s, poly_degree, n_trial)
         n_s = int( NP.ceil(mean + std) )
 
         # compute search space
