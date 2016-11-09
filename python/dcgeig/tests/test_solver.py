@@ -204,25 +204,18 @@ class Test_execute(unittest.TestCase):
 
         d = rs[0][0]
         X = rs[0][1]
-        eta = rs[0][2]
-        delta = rs[0][3]
 
         self.assertIsInstance(d, NP.ndarray)
         self.assertIsInstance(X, NP.ndarray)
-        self.assertIsInstance(eta, NP.ndarray)
-        self.assertIsInstance(delta, NP.ndarray)
-
         self.assertEqual( X.shape[0], n1*n2 )
 
-        t = d-delta <= sigma
-
-        be, fe = error_analysis.compute_errors(K, M, d[t], X[:,t])
+        eta, delta = error_analysis.compute_errors(K, M, d, X)
 
         eps = NP.finfo(X.dtype).eps
-        self.assertTrue( NP.all(be <= options.eta_max) )
-        self.assertTrue( NP.all(fe <= options.delta_max) )
-        self.assertTrue( NP.all(be - eta[t] <= eps) )
-        self.assertTrue( NP.all(fe - delta[t] <= eps) )
+        self.assertTrue( NP.all(eta <= options.eta_max) )
+        self.assertTrue( NP.all(delta <= options.delta_max) )
+        self.assertTrue( NP.all(eta - rs[0][2] <= eps) )
+        self.assertTrue( NP.all(delta - rs[0][3] <= eps) )
 
 
 
