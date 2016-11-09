@@ -14,8 +14,10 @@ import scipy.linalg as SL
 import scipy.sparse as SS
 
 import dcgeig.binary_tree as binary_tree
+import dcgeig.error_analysis as error_analysis
 import dcgeig.gallery as gallery
 import dcgeig.linalg as linalg
+import dcgeig.options
 import dcgeig.solver as solver
 
 
@@ -124,6 +126,80 @@ class Test_compute_search_space(unittest.TestCase):
 
         self.assertTrue( r >= (1.0/a)**2 + (1.0/b)**2 )
         self.assertTrue( r < (1.0/a)**2 + (2.0/b)**2 )
+
+
+
+class Test_execute(unittest.TestCase):
+    def test_simple(self):
+        n = 6
+        dtype = NP.float64
+
+        M = SS.identity(n, dtype=dtype, format='csc')
+        K = SS.csc_matrix( \
+                NP.array([ \
+                    [50, 1, 1, 1, 1, 1],
+                    [ 1,20,-1, 0, 0, 0],
+                    [ 1,-1,20,-1, 0, 0],
+                    [ 1, 0,-1,20, 0, 0],
+                    [ 1, 0, 0, 0,10, 1],
+                    [ 1, 0, 0, 0, 1,10]], dtype=dtype))
+
+        options = dcgeig.options.Options()
+        options.n_direct = 1000
+        options.n_s_min = 30
+        options.eta_max = 1e-8
+        options.delta_max = 1.0
+
+        rs, labels = solver.execute(options, K, M, 1e-8)
+
+        self.assertEqual( len(rs), 1 )
+        self.assertTrue( NP.all(labels == 0) )
+        self.assertEqual( labels.size, n )
+
+        d = rs[0][0]
+        X = rs[0][1]
+
+        self.assertIsInstance(d, NP.ndarray)
+        self.assertIsInstance(X, NP.ndarray)
+        self.assertEqual( X.shape[0], n )
+
+        eta = error_analysis.compute_backward_error(K, M, d, X)
+
+        self.assertTrue( NP.all(eta < 2*NP.finfo(dtype).eps) )
+
+
+
+    def test_fem_laplacian_2D(self):
+        n1 = 10
+        a = 1.0
+        n2 = 15
+        b = 1.5
+        K, M = gallery.fem_laplacian_2D_rectangle(n1, a, n2, b)
+
+        options = dcgeig.options.Options()
+        options.n_direct = 50
+        options.n_s_min = 1
+        options.eta_max = 1e-8
+        options.delta_max = 1e-2
+
+        sigma = NP.pi**2 * ( (2.0/a)**2 + (3.0/b)**2) + 1
+        rs, labels = solver.execute(options, K, M, sigma)
+
+        self.assertEqual( len(rs), 1 )
+        self.assertTrue( NP.all(labels == 0) )
+        self.assertEqual( labels.size, n1*n2 )
+
+        d = rs[0][0]
+        X = rs[0][1]
+
+        self.assertIsInstance(d, NP.ndarray)
+        self.assertIsInstance(X, NP.ndarray)
+        self.assertEqual( X.shape[0], n1*n2 )
+
+        eta, delta = error_analysis.compute_errors(K, M, d, X)
+
+        self.assertTrue( NP.all(eta <= options.eta_max) )
+        self.assertTrue( NP.all(delta <= options.delta_max) )
 
 
 

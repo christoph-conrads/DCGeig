@@ -18,6 +18,7 @@ import scipy.sparse as SS
 import scipy.sparse.linalg as LA
 
 import dcgeig.linalg as linalg
+import dcgeig.options
 import dcgeig.polynomial as polynomial
 import dcgeig.sparse_tools as sparse_tools
 import dcgeig.subspace_iteration as subspace_iteration
@@ -118,3 +119,79 @@ def compute_search_space(node, K, M, n_s, n_s_min):
         solve, K, M, S, 2*d_max, overwrite_b=True)
 
     return S
+
+
+
+def execute(options, A, B, lambda_c):
+    assert isinstance(options, dcgeig.options.Options)
+    assert utils.is_hermitian(A)
+    assert utils.is_hermitian(B)
+    assert A.dtype == B.dtype
+    assert isinstance(lambda_c, numbers.Real)
+    assert lambda_c > 0
+
+    n = A.shape[0]
+    n_direct = options.n_direct
+    n_s_min = options.n_s_min
+    eta_max = options.eta_max
+    delta_max = options.delta_max
+
+    l, labels = sparse_tools.get_subproblems(A, B)
+
+    def call_solve_gep(i):
+        t = labels == i
+
+
+        if NP.sum(t) < n_direct:
+            K = A[:,t][t,:]
+            M = B[:,t][t,:]
+
+            d, X = linalg.rayleigh_ritz(K, M)
+
+            return d, X
+
+
+        M = B[:,t][t,:]
+        K = A[:,t][t,:] + lambda_c * M
+
+        # balance matrix pencil
+        s, D = sparse_tools.balance_matrix_pencil(K, M)
+        K = SS.csc_matrix(D * K * D)
+        M = SS.csc_matrix(D * (s*M) * D)
+
+        # compute partitioning
+        G = sparse_tools.matrix_to_graph(K)
+        root, perm = sparse_tools.multilevel_bisection(G, options.n_direct)
+
+        K = K[:,perm][perm,:]
+        M = M[:,perm][perm,:]
+
+        del G
+
+        # count eigenvalues
+        mean, std = estimate_eigenvalue_count(K,M,lambda_c/s,2*lambda_c/s,50,50)
+        n_s = int( NP.ceil(mean + std) )
+
+        # compute search space
+        S = compute_search_space(root, K, M, n_s, n_s_min)
+        S[perm,:] = S
+
+        # use subspace iterations for solutions
+        K = A[:,t][t,:]
+        M = B[:,t][t,:]
+
+        s, D = sparse_tools.balance_matrix_pencil(K, M)
+        K = SS.csc_matrix(D * K * D)
+        M = SS.csc_matrix(D * (s*M) * D)
+
+        LL = linalg.spll(K)
+
+        d, X = subspace_iteration.execute( \
+                LL.solve, K, M, S, lambda_c/s, eta_max, delta_max)
+
+        return s*d, X
+
+
+    rs = map( call_solve_gep, range(l) )
+
+    return rs, labels
