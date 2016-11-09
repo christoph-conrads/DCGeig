@@ -11,7 +11,7 @@ import numpy as NP
 
 
 
-class Options:
+class Options(object):
     def __init__(self):
         self.n_direct = 1000
         self.n_s_min = 30
