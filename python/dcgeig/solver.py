@@ -150,9 +150,7 @@ def execute(options, A, B, lambda_c):
             d, X = linalg.rayleigh_ritz(K, M)
             eta, delta = error_analysis.compute_errors(K, M, d, X)
 
-            u = d-delta <= lambda_c
-
-            return d[u], X[:,u], eta[u], delta[u]
+            return d, X, eta, delta
 
 
         M = B[:,t][t,:]

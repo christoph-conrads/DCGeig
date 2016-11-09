@@ -68,12 +68,14 @@ class Test_subspace_iteration(unittest.TestCase):
         M = SS.identity(n)
         solve = lambda x: x
 
+        lambda_c = 0.5
         x0 = ML.matrix(1.0 * NP.arange(1, n+1)).H
 
         d, X, eta, delta = \
-            subspace_iteration.execute(solve, K, M, x0, 0.5, 1e-8, 1e-2)
+            subspace_iteration.execute(solve, K, M, x0, lambda_c, 1e-8, 1e-2)
 
-        self.assertEqual( d.size, 0 )
+        self.assertEqual( d.size, 1 )
+        self.assertTrue( min(d-delta) > lambda_c )
 
 
     def test_FDM_Laplacian_1D(self):
@@ -89,14 +91,16 @@ class Test_subspace_iteration(unittest.TestCase):
 
         d_min = 2 * NP.pi**2
 
-        d, X, _, _ = \
+        d, X, _, delta = \
             subspace_iteration.execute(solve, K, M, b, 1.5*d_min, 1e-8, 1e-2)
 
-        self.assertEqual( d.size, 1 )
+        t = d - delta <= 1.5*d_min
+        self.assertEqual( NP.sum(t), 1 )
+
         self.assertEqual( X.shape[0], K.shape[0] )
         self.assertEqual( X.shape[1], d.size )
 
-        eta, delta = error_analysis.compute_errors(K, M, d, X)
+        eta, delta = error_analysis.compute_errors(K, M, d[t], X[:,t])
 
         self.assertTrue( eta < 1e-15 )
         self.assertTrue( delta < 1e-13 )

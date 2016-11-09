@@ -107,4 +107,4 @@ def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
     assert not NP.any(NP.isinf(d))
     assert not NP.any(NP.isnan(d))
 
-    return d[t], X[:,t], eta[t], delta[t]
+    return d, X, eta, delta
