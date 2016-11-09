@@ -74,6 +74,7 @@ def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
     assert SS.isspmatrix(M)
     assert isinstance(X, NP.ndarray)
     assert X.shape[0] == K.shape[0]
+    assert X.shape[1] > 0
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
     assert isinstance(eta_max, numbers.Real)
@@ -92,13 +93,16 @@ def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
 
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
+        d_max = max(d)
 
         t = d-delta <= lambda_c
+
+        if not NP.any(t):
+            break
 
         if max(eta[t]) < eta_max and max(delta[t]/d[t]) < delta_max:
             break
 
-        d_max = max(d)
 
     assert not NP.any(NP.isinf(d))
     assert not NP.any(NP.isnan(d))

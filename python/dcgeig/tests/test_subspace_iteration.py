@@ -62,6 +62,20 @@ class Test_inverse_iteration(unittest.TestCase):
 
 
 class Test_subspace_iteration(unittest.TestCase):
+    def test_no_eigenpairs_below_cutoff(self):
+        n = 4
+        K = SS.identity(n)
+        M = SS.identity(n)
+        solve = lambda x: x
+
+        x0 = ML.matrix(1.0 * NP.arange(1, n+1)).H
+
+        d, X, eta, delta = \
+            subspace_iteration.execute(solve, K, M, x0, 0.5, 1e-8, 1e-2)
+
+        self.assertEqual( d.size, 0 )
+
+
     def test_FDM_Laplacian_1D(self):
         n = 5
         K = gallery.fdm_laplacian_1D(n)
