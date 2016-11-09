@@ -177,6 +177,10 @@ def execute(options, A, B, lambda_c):
         # count eigenvalues
         mean, std = estimate_eigenvalue_count( \
             K, M, lambda_c/s, 2*lambda_c/s, poly_degree, n_trial)
+
+        if mean+std < 0.5:
+            return NP.ones(0), ML.ones([n,0]), NP.ones(0), NP.ones(0)
+
         n_s = int( NP.ceil(mean + std) )
 
         # compute search space

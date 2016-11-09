@@ -167,6 +167,23 @@ class Test_execute(unittest.TestCase):
 
 
 
+    def test_zero_estimate(self):
+        n = 4
+
+        K = 1e6 * gallery.fdm_laplacian_1D(n)
+        M = SS.identity(n, format='csc')
+
+        options = dcgeig.options.Options()
+        options.num_trial_vectors = 2
+        options.n_direct = 2
+
+        rs, labels = solver.execute(options, K, M, 1e-8)
+
+        self.assertEqual( len(rs), 1 )
+        self.assertEqual( rs[0][0].size, 0 )
+
+
+
     def test_fem_laplacian_2D(self):
         n1 = 10
         a = 1.0
