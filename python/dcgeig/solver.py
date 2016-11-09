@@ -32,7 +32,7 @@ def estimate_trace(f, n, b, dtype=NP.float64):
     assert isinstance(n, int)
     assert n > 0
     assert isinstance(b, int)
-    assert b > 0
+    assert b > 1
     assert b <= n
 
 
