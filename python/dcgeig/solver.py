@@ -132,7 +132,6 @@ def execute(options, A, B, lambda_c):
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
 
-    n = A.shape[0]
     n_direct = options.n_direct
     n_s_min = options.n_s_min
 
@@ -146,6 +145,7 @@ def execute(options, A, B, lambda_c):
 
     def call_solve_gep(i):
         t = labels == i
+        n = NP.sum(t)
 
 
         if NP.sum(t) < n_direct:
@@ -162,6 +162,15 @@ def execute(options, A, B, lambda_c):
 
         M = B[:,t][t,:]
         K = A[:,t][t,:] + lambda_c * M
+
+        # normalize matrix norm
+        I = SS.identity(n) / NP.sqrt(n)
+        s, _ = sparse_tools.balance_matrix_pencil(I, K)
+
+        K = s * K
+        M = s * M
+
+        del s
 
         # balance matrix pencil
         s, D = sparse_tools.balance_matrix_pencil(K, M)
