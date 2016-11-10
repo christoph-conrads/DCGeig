@@ -128,6 +128,6 @@ def compute_largest_eigenvalue(K, M, S, tol=0):
 
     v0 = NP.ones([m,1], dtype=K.dtype)
 
-    d = LA.eigsh(operator, k=1, v0=v0, tol=tol, return_eigenvectors=False)
+    d=LA.eigsh(operator, k=1, ncv=32, v0=v0, tol=tol, return_eigenvectors=False)
 
     return max(d)
