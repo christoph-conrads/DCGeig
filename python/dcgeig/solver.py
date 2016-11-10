@@ -97,6 +97,9 @@ def compute_search_space(node, K, M, n_s, n_s_min):
     S1 = compute_search_space(node.left_child, K11, M11, n_s/2, n_s_min)
     S2 = compute_search_space(node.right_child, K22, M22, n_s-n_s/2, n_s_min)
 
+    linalg.orthogonalize(S1, do_overwrite=True)
+    linalg.orthogonalize(S2, do_overwrite=True)
+
     # compute largest ev
     d1_max = linalg.compute_largest_eigenvalue(K11, M11, S1, tol=1e-1)
     d2_max = linalg.compute_largest_eigenvalue(K22, M22, S2, tol=1e-1)
@@ -107,8 +110,6 @@ def compute_search_space(node, K, M, n_s, n_s_min):
 
 
     # combine search spaces
-    linalg.orthogonalize(S1, do_overwrite=True)
-    linalg.orthogonalize(S2, do_overwrite=True)
     S = SL.block_diag(S1, S2)
     S = ML.matrix(S)
 
