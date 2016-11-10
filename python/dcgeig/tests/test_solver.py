@@ -215,7 +215,7 @@ class Test_execute(unittest.TestCase):
         self.assertTrue( NP.all(eta <= options.eta_max) )
         self.assertTrue( NP.all(delta <= options.delta_max) )
         self.assertTrue( NP.all(eta - rs[0][2] <= eps) )
-        self.assertTrue( NP.all(delta - rs[0][3] <= eps) )
+        self.assertTrue( NP.all(delta - rs[0][3] <= 10*eps) )
 
 
 
