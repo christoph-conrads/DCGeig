@@ -187,7 +187,9 @@ def execute(options, A, B, lambda_c):
 
         # compute search space
         S = compute_search_space(root, K, M, n_s, n_s_min)
-        S[perm,:] = S
+
+        iperm = NP.argsort(perm)
+        S = S[iperm,:]
 
         # use subspace iterations for solutions
         K = A[:,t][t,:]
