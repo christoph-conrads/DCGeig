@@ -88,13 +88,17 @@ def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
 
     linalg.orthogonalize(X, do_overwrite=True)
     d_max = linalg.compute_largest_eigenvalue(K, M, X)
+    k = 0
 
     for i in range(1, max_num_iterations+1):
-        inverse_iteration(solve, K, M, X, 2*d_max, overwrite_b=True)
+        inverse_iteration(solve, K, M, X[:,k:], 2*d_max, overwrite_b=True)
 
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
         d_max = max(d)
+
+        eps = NP.finfo(K.dtype).eps
+        k = min( NP.nonzero(eta > eps)[0] ) if NP.any(eta > eps) else X.shape[1]
 
         t = d-delta <= lambda_c
 
