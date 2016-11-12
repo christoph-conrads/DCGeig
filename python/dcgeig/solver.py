@@ -164,8 +164,9 @@ def execute(options, A, B, lambda_c):
             return d[u], X[:,u], eta[u], delta[u]
 
 
+        sigma = 10 * lambda_c
         M = B[:,t][t,:]
-        K = A[:,t][t,:] + lambda_c * M
+        K = A[:,t][t,:] + sigma * M
 
         # normalize matrix norm
         I = SS.identity(n) / NP.sqrt(n)
@@ -194,7 +195,7 @@ def execute(options, A, B, lambda_c):
         t0 = time.time()
         c0 = time.clock()
         mean, std = estimate_eigenvalue_count( \
-            K, M, lambda_c/s, 2*lambda_c/s, poly_degree, n_trial)
+            K, M, sigma/s, 2*sigma/s, poly_degree, n_trial)
         c1 = time.clock()
         t1 = time.time()
 
@@ -206,6 +207,7 @@ def execute(options, A, B, lambda_c):
         fmt = 'Estimated eigenvalue count: {:d} ({:.1f}s {:.1f}s)'
         show( fmt.format(n_s, t1-t0, c1-c0) )
 
+        del sigma
         del t0; del t1
         del c0; del c1
 
