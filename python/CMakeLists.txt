@@ -67,3 +67,4 @@ target_link_libraries(pysolvers PUBLIC solvers)
 
 install(TARGETS metis pysolvers LIBRARY DESTINATION ${PACKAGE_DIR})
 install(PROGRAMS count-eigenvalues DESTINATION bin)
+install(PROGRAMS solve-sparse-gep RENAME dcgeig DESTINATION bin)
