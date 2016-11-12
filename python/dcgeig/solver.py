@@ -229,8 +229,8 @@ def execute(options, A, B, lambda_c):
 
 
         # use subspace iterations for solutions
-        K = A[:,t][t,:]
         M = B[:,t][t,:]
+        K = A[:,t][t,:] + lambda_c * M
 
         s, D = sparse_tools.balance_matrix_pencil(K, M)
         K = SS.csc_matrix(D * K * D)
@@ -241,7 +241,7 @@ def execute(options, A, B, lambda_c):
         t0 = time.time()
         c0 = time.clock()
         d, X, eta, delta = subspace_iteration.execute( \
-                LL.solve, K, M, S, lambda_c/s, eta_max, delta_max)
+                LL.solve, K, M, S, 2*lambda_c/s, eta_max, delta_max)
         c1 = time.clock()
         t1 = time.time()
 
@@ -252,7 +252,7 @@ def execute(options, A, B, lambda_c):
         del c0; del c1
 
 
-        return s*d, X, eta, s*delta
+        return s*d - lambda_c, X, eta, s*delta
 
 
     rs = map( call_solve_gep, range(l) )
