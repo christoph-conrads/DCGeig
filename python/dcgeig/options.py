@@ -11,6 +11,10 @@ import numpy as NP
 
 
 
+def nop(_):
+    pass
+
+
 class Options(object):
     def __init__(self):
         self.n_direct = 1000
@@ -21,5 +25,7 @@ class Options(object):
 
         self.eta_max = NP.finfo(NP.float32).eps
         self.delta_max = 1e-2
+
+        self.show = nop
 
         assert self.num_trial_vectors <= self.n_direct

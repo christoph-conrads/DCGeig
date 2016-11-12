@@ -25,6 +25,8 @@ import dcgeig.sparse_tools as sparse_tools
 import dcgeig.subspace_iteration as subspace_iteration
 import dcgeig.utils as utils
 
+import time
+
 
 
 def estimate_trace(f, n, b, dtype=NP.float64):
@@ -141,6 +143,8 @@ def execute(options, A, B, lambda_c):
     eta_max = options.eta_max
     delta_max = options.delta_max
 
+    show = options.show
+
     l, labels = sparse_tools.get_subproblems(A, B)
 
     def call_solve_gep(i):
@@ -187,19 +191,42 @@ def execute(options, A, B, lambda_c):
         del G
 
         # count eigenvalues
+        t0 = time.time()
+        c0 = time.clock()
         mean, std = estimate_eigenvalue_count( \
             K, M, lambda_c/s, 2*lambda_c/s, poly_degree, n_trial)
+        c1 = time.clock()
+        t1 = time.time()
 
         if mean+std < 0.5:
             return NP.ones(0), ML.ones([n,0]), NP.ones(0), NP.ones(0)
 
         n_s = int( NP.ceil(mean + std) )
 
+        fmt = 'Estimated eigenvalue count: {:d} ({:.1f}s {:.1f}s)'
+        show( fmt.format(n_s, t1-t0, c1-c0) )
+
+        del t0; del t1
+        del c0; del c1
+
+
         # compute search space
+        t0 = time.time()
+        c0 = time.clock()
         S = compute_search_space(root, K, M, n_s, n_s_min)
+        c1 = time.clock()
+        t1 = time.time()
 
         iperm = NP.argsort(perm)
         S = S[iperm,:]
+
+
+        fmt = 'Search space computed ({:.1f}s {:.1f}s)'
+        show( fmt.format(t1-t0, c1-c0) )
+
+        del t0; del t1
+        del c0; del c1
+
 
         # use subspace iterations for solutions
         K = A[:,t][t,:]
@@ -211,8 +238,19 @@ def execute(options, A, B, lambda_c):
 
         LL = linalg.spll(K)
 
+        t0 = time.time()
+        c0 = time.clock()
         d, X, eta, delta = subspace_iteration.execute( \
                 LL.solve, K, M, S, lambda_c/s, eta_max, delta_max)
+        c1 = time.clock()
+        t1 = time.time()
+
+        fmt = 'Subspace iteration found {:d} eigenpairs ({:.1f}s {:.1f}s)'
+        show( fmt.format(d.size, t1-t0, c1-c0) )
+
+        del t0; del t1
+        del c0; del c1
+
 
         return s*d, X, eta, s*delta
 

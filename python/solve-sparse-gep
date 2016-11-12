@@ -133,10 +133,15 @@ def sanitize_matrix_pencil(K, M):
 
 
 def sanitize_input(options, user_options):
+    def print_message(message):
+        print message
+
+
     options.lambda_c = user_options.cutoff
     options.k_path = normalize_path( user_options.file )
     options.n_direct = user_options.max_dim_direct_solve
     options.be_quiet = user_options.quiet
+    options.show = options.show if options.be_quiet else print_message
 
 
     # get stiffness matrix
@@ -205,7 +210,11 @@ def main():
     n = A.shape[0]
     lambda_c = options.lambda_c
 
+    t0 = time.time()
+    c0 = time.clock()
     rs, labels = solver.execute(options, A, B, lambda_c)
+    c1 = time.clock()
+    t1 = time.time()
 
 
     # output
@@ -214,13 +223,15 @@ def main():
     fmt = '{:20s} {:8.2e} {:6d} {:4d} {:8.2e} {:8.2e} {:7.1f} {:8.1f}'
     zero_fmt = '{:20s} {:8.2e} {:6d} {:4d} {:>8s} {:>8s} {:7.1f} {:8.1f}'
 
+    t = t1 - t0
+    c = c1 - c0
     filename = options.filename
 
     if n_c == 0:
-        print zero_fmt.format(filename, lambda_c, n, n_c, '--', '--', -1.0,-1.0)
+        print zero_fmt.format(filename, lambda_c, n, n_c, '--', '--', t, c)
     else:
         print fmt.format( \
-                filename, lambda_c, n, n_c, eta_max, delta_max, -1.0,-1.0)
+                filename, lambda_c, n, n_c, eta_max, delta_max, t, c)
 
 
 
