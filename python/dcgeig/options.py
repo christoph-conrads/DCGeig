@@ -24,7 +24,7 @@ class Options(object):
         self.polynomial_degree = 50
 
         self.eta_max = NP.finfo(NP.float32).eps
-        self.delta_max = 1e-2
+        self.delta_max = 1e0
 
         self.show = nop
 

@@ -82,7 +82,6 @@ def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
     assert eta_max < 1
     assert isinstance(delta_max, numbers.Real)
     assert delta_max > 0
-    assert delta_max < 1
     assert isinstance(max_num_iterations, int)
     assert max_num_iterations > 0
 
