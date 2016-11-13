@@ -99,17 +99,8 @@ def compute_search_space(node, K, M, n_s, n_s_min):
     S1 = compute_search_space(node.left_child, K11, M11, n_s/2, n_s_min)
     S2 = compute_search_space(node.right_child, K22, M22, n_s-n_s/2, n_s_min)
 
-    S1 = linalg.orthogonalize(S1)
-    S2 = linalg.orthogonalize(S2)
-
-    # compute largest ev
-    d1_max = linalg.compute_largest_eigenvalue(K11, M11, S1, tol=1e-1)
-    d2_max = linalg.compute_largest_eigenvalue(K22, M22, S2, tol=1e-1)
-    d_max = max(d1_max, d2_max)
-
     del K11; del M11
     del K22; del M22
-
 
     # combine search spaces
     S = SL.block_diag(S1, S2)
@@ -118,9 +109,11 @@ def compute_search_space(node, K, M, n_s, n_s_min):
     del S1; del S2
 
     LL = linalg.spll(K)
-    solve = LL.solve
-    subspace_iteration.inverse_iteration( \
-        solve, K, M, S, 2*d_max, overwrite_b=True)
+
+    for k in range(3):
+        S = LL.solve(M * S)
+
+    S = linalg.orthogonalize(S)
 
     return S
 
@@ -213,21 +206,32 @@ def execute(options, A, B, lambda_c):
 
 
         # compute search space
+        K11, K22, _ = sparse_tools.get_submatrices_bisection(root, K)
+        M11, M22, _ = sparse_tools.get_submatrices_bisection(root, M)
+
         t0 = time.time()
         c0 = time.clock()
-        S = compute_search_space(root, K, M, n_s, n_s_min)
+        S1 = compute_search_space(root.left_child, K11, M11, n_s/2, n_s_min)
+        S2 = compute_search_space(root.right_child, K22, M22, n_s-n_s/2, n_s_min)
         c1 = time.clock()
         t1 = time.time()
 
+        del K11; del M11
+        del K22; del M22
+
+        # combine search spaces
+        S = SL.block_diag(S1, S2)
+        S = ML.matrix(S)
+
         iperm = NP.argsort(perm)
         S = S[iperm,:]
-
 
         fmt = 'Search space computed ({:.1f}s {:.1f}s)'
         show( fmt.format(t1-t0, c1-c0) )
 
         del t0; del t1
         del c0; del c1
+        del S1; del S2
 
 
         # use subspace iterations for solutions
