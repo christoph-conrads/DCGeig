@@ -157,7 +157,7 @@ def execute(options, A, B, lambda_c):
             return d[u], X[:,u], eta[u], delta[u]
 
 
-        sigma = 10 * lambda_c
+        sigma = 5 * lambda_c
         M = B[:,t][t,:]
         K = A[:,t][t,:] + sigma * M
 
