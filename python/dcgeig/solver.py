@@ -99,8 +99,8 @@ def compute_search_space(node, K, M, n_s, n_s_min):
     S1 = compute_search_space(node.left_child, K11, M11, n_s/2, n_s_min)
     S2 = compute_search_space(node.right_child, K22, M22, n_s-n_s/2, n_s_min)
 
-    linalg.orthogonalize(S1, do_overwrite=True)
-    linalg.orthogonalize(S2, do_overwrite=True)
+    S1 = linalg.orthogonalize(S1)
+    S2 = linalg.orthogonalize(S2)
 
     # compute largest ev
     d1_max = linalg.compute_largest_eigenvalue(K11, M11, S1, tol=1e-1)

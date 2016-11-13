@@ -53,24 +53,6 @@ class Test_orthogonalize(unittest.TestCase):
             self.assertEqual( NL.norm(Q[-1,:]), 0 )
 
 
-    def test_overwrite(self):
-        for dtype in [NP.float32, NP.float64]:
-            raw = [[2, 0, 0], [0, 2, 1], [0, 1, 2], [0, 0, 0]]
-            U = ML.matrix(raw, dtype=dtype)
-            n = U.shape[1]
-
-            Q = U.copy()
-            linalg.orthogonalize(Q, do_overwrite=True)
-
-            self.assertEqual( Q.shape[0], U.shape[0] )
-            self.assertEqual( Q.shape[1], U.shape[1] )
-
-            eps = NP.finfo(dtype).eps
-            self.assertEqual( Q[0,0], 1 )
-            self.assertTrue( NL.norm(Q.H * Q - NP.eye(n)) <= n*eps )
-            self.assertEqual( NL.norm(Q[-1,:]), 0 )
-
-
 
 class Test_rayleigh_ritz(unittest.TestCase):
     def test_simple(self):

@@ -40,18 +40,14 @@ def spll(A):
 
 
 
-def orthogonalize(V, do_overwrite=False):
+def orthogonalize(V):
     assert isinstance(V, ML.matrix)
     assert V.shape[0] >= V.shape[1]
 
-    W = V if do_overwrite else V.copy()
+    Q, _ = NL.qr(V)
+    Q = ML.matrix(Q)
 
-    A = V.H * V
-    L = NL.cholesky(A)
-
-    SL.solve_triangular(L, W.H, lower=True, overwrite_b=True)
-
-    return None if do_overwrite else W
+    return Q
 
 
 

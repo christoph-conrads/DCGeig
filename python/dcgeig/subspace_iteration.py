@@ -86,7 +86,7 @@ def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
     assert isinstance(max_num_iterations, int)
     assert max_num_iterations > 0
 
-    linalg.orthogonalize(X, do_overwrite=True)
+    X = linalg.orthogonalize(X)
     d_max = linalg.compute_largest_eigenvalue(K, M, X)
     k = 0
 
