@@ -64,7 +64,7 @@ class Test_inverse_iteration(unittest.TestCase):
 class Test_subspace_iteration(unittest.TestCase):
     def test_no_eigenpairs_below_cutoff(self):
         n = 4
-        K = SS.identity(n)
+        K = SS.identity(n, format='csc')
         M = SS.identity(n)
 
         x0 = ML.matrix(1.0 * NP.arange(1, n+1)).H
