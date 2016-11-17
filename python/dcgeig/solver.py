@@ -200,7 +200,6 @@ def execute(options, A, B, lambda_c):
         fmt = 'Estimated eigenvalue count: {:d} ({:.1f}s {:.1f}s)'
         show( fmt.format(n_s, t1-t0, c1-c0) )
 
-        del sigma
         del t0; del t1
         del c0; del c1
 
@@ -236,18 +235,17 @@ def execute(options, A, B, lambda_c):
 
         # use subspace iterations for solutions
         M = B[:,t][t,:]
-        K = A[:,t][t,:] + lambda_c * M
+        K = A[:,t][t,:]
 
         s, D = sparse_tools.balance_matrix_pencil(K, M)
         K = SS.csc_matrix(D * K * D)
         M = SS.csc_matrix(D * (s*M) * D)
 
-        LL = linalg.spll(K)
 
         t0 = time.time()
         c0 = time.clock()
         d, X, eta, delta = subspace_iteration.execute( \
-                LL.solve, K, M, S, 2*lambda_c/s, eta_max, delta_max)
+                K, M, S, lambda_c/s, sigma/s, eta_max, delta_max)
         c1 = time.clock()
         t1 = time.time()
 
@@ -258,7 +256,7 @@ def execute(options, A, B, lambda_c):
         del c0; del c1
 
 
-        return s*d - lambda_c, X, eta, s*delta
+        return s*d, X, eta, s*delta
 
 
     rs = map( call_solve_gep, range(l) )

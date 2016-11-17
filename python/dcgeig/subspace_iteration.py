@@ -17,6 +17,7 @@ import numpy as NP
 
 import scipy.linalg as SL
 import scipy.sparse as SS
+import scipy.sparse.linalg as LA
 
 import time
 
@@ -68,8 +69,8 @@ def inverse_iteration( \
 
 
 
-def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
-    assert callable(solve)
+def execute( \
+        K, M, X, lambda_c, lambda_s, eta_max, delta_max, max_num_iterations=10):
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
     assert isinstance(X, NP.ndarray)
@@ -77,6 +78,8 @@ def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
     assert X.shape[1] > 0
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
+    assert isinstance(lambda_s, numbers.Real)
+    assert lambda_s > lambda_c
     assert isinstance(eta_max, numbers.Real)
     assert eta_max > 0
     assert eta_max < 1
@@ -85,18 +88,15 @@ def execute(solve, K, M, X, lambda_c, eta_max, delta_max,max_num_iterations=10):
     assert isinstance(max_num_iterations, int)
     assert max_num_iterations > 0
 
-    d_max = linalg.compute_largest_eigenvalue(K, M, X)
-    k = 0
+    A = SS.csc_matrix(K + lambda_c * M)
+    LL = linalg.spll(A)
+    sigma = lambda_s + lambda_c
 
     for i in range(1, max_num_iterations+1):
-        inverse_iteration(solve, K, M, X[:,k:], 2*d_max, overwrite_b=True)
+        inverse_iteration(LL.solve, A, M, X, sigma, overwrite_b=True)
 
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
-        d_max = max(d)
-
-        eps = NP.finfo(K.dtype).eps
-        k = min( NP.nonzero(eta > eps)[0] ) if NP.any(eta > eps) else X.shape[1]
 
         t = d-delta <= lambda_c
 
