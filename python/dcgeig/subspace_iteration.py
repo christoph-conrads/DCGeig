@@ -25,7 +25,7 @@ import time
 
 def inverse_iteration( \
         solve, K, M, B, sigma,
-        polynomial_degree=7, block_size=256, overwrite_b=False):
+        polynomial_degree, block_size=256, overwrite_b=False):
     assert callable(solve)
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
@@ -93,7 +93,7 @@ def execute( \
     sigma = lambda_s + lambda_c
 
     for i in range(1, max_num_iterations+1):
-        inverse_iteration(LL.solve, A, M, X, sigma, overwrite_b=True)
+        inverse_iteration(LL.solve, A, M, X, sigma, 7, overwrite_b=True)
 
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)

@@ -44,7 +44,7 @@ class Test_inverse_iteration(unittest.TestCase):
 
         tol = 0.99
 
-        x = subspace_iteration.inverse_iteration(solve, K, M, b, 10*min(ds))
+        x = subspace_iteration.inverse_iteration(solve, K, M, b, 10*min(ds), 7)
         x = x / SL.norm(x)
 
         self.assertTrue( X[:,0].H * x > tol )
@@ -52,7 +52,7 @@ class Test_inverse_iteration(unittest.TestCase):
 
         y = ML.copy(b)
         ret = subspace_iteration.inverse_iteration( \
-                solve, K, M, y, 10*min(ds), overwrite_b=True)
+                solve, K, M, y, 10*min(ds), 7, overwrite_b=True)
         y = y / SL.norm(y)
 
         self.assertTrue( X[:,0].H * y > tol )
