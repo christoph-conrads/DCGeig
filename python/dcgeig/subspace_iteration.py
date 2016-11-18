@@ -98,7 +98,12 @@ def execute( \
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
 
-        t = d-delta <= lambda_c
+
+        t = d <= lambda_c
+        u = d - delta <= lambda_c
+        n_c = NP.sum(t)
+        t[:n_c+10] = True
+        t = t & u
 
         if not NP.any(t):
             break
@@ -110,4 +115,4 @@ def execute( \
     assert not NP.any(NP.isinf(d))
     assert not NP.any(NP.isnan(d))
 
-    return d[t], X[:,t], eta[t], delta[t]
+    return d[:n_c], X[:,:n_c], eta[:n_c], delta[:n_c]
