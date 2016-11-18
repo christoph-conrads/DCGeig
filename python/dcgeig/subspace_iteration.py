@@ -88,12 +88,20 @@ def execute( \
     assert isinstance(max_num_iterations, int)
     assert max_num_iterations > 0
 
-    A = SS.csc_matrix(K + lambda_c * M)
-    LL = linalg.spll(A)
-    sigma = lambda_s + lambda_c
+    cs = lambda_s
 
     for i in range(1, max_num_iterations+1):
-        inverse_iteration(LL.solve, A, M, X, sigma, 7, overwrite_b=True)
+        options = {'SymmetricMode': True}
+        LL0 = LA.splu(SS.csc_matrix(K - lambda_c * M), options=options)
+        for k in range(3):
+            X = LL0.solve(M * X)
+        del LL0
+
+        A = SS.csc_matrix(K + lambda_c * M)
+        LL1 = linalg.spll(A)
+        inverse_iteration(LL1.solve, A, M, X, cs, 11, overwrite_b=True)
+        del LL1
+        del A
 
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
