@@ -175,15 +175,6 @@ def execute(options, A, B, lambda_c):
         K = SS.csc_matrix(D * K * D)
         M = SS.csc_matrix(D * (s*M) * D)
 
-        # compute partitioning
-        G = sparse_tools.matrix_to_graph(K)
-        root, perm = sparse_tools.multilevel_bisection(G, options.n_direct)
-
-        K = K[:,perm][perm,:]
-        M = M[:,perm][perm,:]
-
-        del G
-
         # count eigenvalues
         t0 = time.time()
         c0 = time.clock()
@@ -203,6 +194,22 @@ def execute(options, A, B, lambda_c):
         del t0; del t1
         del c0; del c1
 
+
+        # compute partitioning
+        K = A[:,t][t,:]
+        M = B[:,t][t,:]
+
+        s, D = sparse_tools.balance_matrix_pencil(K, M)
+        K = SS.csc_matrix(D * K * D)
+        M = SS.csc_matrix(D * (s*M) * D)
+
+        G = sparse_tools.matrix_to_graph(K)
+        root, perm = sparse_tools.multilevel_bisection(G, options.n_direct)
+
+        K = K[:,perm][perm,:]
+        M = M[:,perm][perm,:]
+
+        del G
 
         # compute search space
         K11, K22, _ = sparse_tools.get_submatrices_bisection(root, K)
