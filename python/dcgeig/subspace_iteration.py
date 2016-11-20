@@ -69,6 +69,54 @@ def heaviside_chebyshev( \
 
 
 
+def minmax_chebyshev( \
+        solve, K, M, B, omega,
+        polynomial_degree, block_size=256, overwrite_b=False):
+    assert callable(solve)
+    assert SS.isspmatrix(K)
+    assert SS.isspmatrix(M)
+    assert isinstance(B, NP.ndarray)
+    assert K.shape[0] == B.shape[0]
+    assert M.shape[0] == B.shape[0]
+    assert isinstance(omega, numbers.Real)
+    assert omega > 0
+    assert isinstance(polynomial_degree, int)
+    assert polynomial_degree > 0
+    assert isinstance(block_size, int)
+    assert block_size > 0
+    assert isinstance(overwrite_b, bool)
+
+    X = B if overwrite_b else NP.copy(B)
+
+    a = 0
+    b = 1/omega
+    c = (b + a) / 2
+    e = (b - a) / 2
+
+    assert c > 0
+    assert e > 0
+
+    d = polynomial_degree
+    k = NP.arange(d)
+    roots = c + e * NP.cos( NP.pi * (2*k+1) / (2*d) )
+
+    eval_poly = polynomial.evaluate_matrix_polynomial
+
+    m = B.shape[1]
+
+    for l in xrange(0, m, block_size):
+        r = min(l+block_size, m)
+
+        Y = X[:,l:r]
+        for sigma in roots:
+            C = M - sigma * K
+            Y = solve(C * Y)
+        X[:,l:r] = Y
+
+    return None if overwrite_b else X
+
+
+
 def execute( \
         K, M, X, lambda_c, lambda_s, eta_max, delta_max, max_num_iterations=10):
     assert SS.isspmatrix(K)
@@ -90,18 +138,10 @@ def execute( \
 
     cs = lambda_s
 
-    for i in range(1, max_num_iterations+1):
-        options = {'SymmetricMode': True}
-        LL0 = LA.splu(SS.csc_matrix(K - lambda_c * M), options=options)
-        for k in range(3):
-            X = LL0.solve(M * X)
-        del LL0
+    LL = linalg.spll(K)
 
-        A = SS.csc_matrix(K + lambda_c * M)
-        LL1 = linalg.spll(A)
-        heaviside_chebyshev(LL1.solve, A, M, X, cs, 11, overwrite_b=True)
-        del LL1
-        del A
+    for i in range(1, max_num_iterations+1):
+        minmax_chebyshev(LL.solve, K, M, X, lambda_s, 2, overwrite_b=True)
 
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
