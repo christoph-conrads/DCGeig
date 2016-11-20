@@ -72,14 +72,16 @@ def estimate_eigenvalue_count(K, M, lambda_1, lambda_c, d, b):
 
 
 
-def compute_search_space(node, K, M, n_s, n_s_min):
+def compute_search_space(node, K, M, lambda_c, n_s_min, n_s):
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
+    assert isinstance(lambda_c, numbers.Real)
+    assert lambda_c > 0
+    assert isinstance(n_s_min, int)
+    assert n_s_min > 0
     assert isinstance(n_s, int)
     assert n_s > 0
     assert K.shape[0] > n_s
-    assert isinstance(n_s_min, int)
-    assert n_s_min > 0
 
 
     if n_s <= n_s_min or node.is_leaf_node():
@@ -90,32 +92,55 @@ def compute_search_space(node, K, M, n_s, n_s_min):
         v0 = NP.ones([n,1], dtype=K.dtype)
         d, X = LA.eigsh(K, M=M, k=n_s, sigma=0, OPinv=solve, v0=v0, tol=1e-1)
 
-        return ML.matrix(X)
+        return d, ML.matrix(X)
 
 
     K11, K22, _ = sparse_tools.get_submatrices_bisection(node, K)
     M11, M22, _ = sparse_tools.get_submatrices_bisection(node, M)
 
-    S1 = compute_search_space(node.left_child, K11, M11, n_s/2, n_s_min)
-    S2 = compute_search_space(node.right_child, K22, M22, n_s-n_s/2, n_s_min)
+    left = node.left_child
+    right = node.right_child
+
+    d1, X1 = compute_search_space(left, K11, M11, lambda_c, n_s_min, n_s/2)
+    d2, X2 = compute_search_space(right, K22, M22, lambda_c, n_s_min, n_s-n_s/2)
 
     del K11; del M11
     del K22; del M22
 
     # combine search spaces
-    S = SL.block_diag(S1, S2)
-    S = ML.matrix(S)
+    X = SL.block_diag(X1, X2)
+    X = ML.matrix(X)
 
-    del S1; del S2
+    d_max = max(max(d1), max(d2))
+
+    del d1; del d2
+    del X1; del X2
 
     LL = linalg.spll(K)
 
-    for k in range(3):
-        S = LL.solve(M * S)
+    for k in range(10):
+        subspace_iteration.minmax_chebyshev( \
+            LL.solve, K, M, X, d_max, 2, overwrite_b=True)
 
-    S = linalg.orthogonalize(S)
+        d, X = linalg.rayleigh_ritz(K, M, X)
+        eta, delta = error_analysis.compute_errors(K, M, d, X)
 
-    return S
+        d_max = max(d)
+
+        t = d <= lambda_c
+        t[0] = True
+
+        fmt = 'CSS {:d}  {:6d} {:4d} {:4d}  {:8.2e} {:8.2e} {:8.2e}  {:8.2e} {:8.2e}'
+        n = K.shape[0]
+        n_c = NP.sum(d <= lambda_c)
+        print fmt.format( \
+                k, n, n_s, n_c, NP.median(eta), NP.max(eta), NP.max(eta[t]), NP.min(d) / lambda_c,
+                NP.max(d) / lambda_c)
+
+        if max(eta[t]) < NP.finfo(NP.float32).eps:
+            break
+
+    return d, X
 
 
 
@@ -212,32 +237,20 @@ def execute(options, A, B, lambda_c):
         del G
 
         # compute search space
-        K11, K22, _ = sparse_tools.get_submatrices_bisection(root, K)
-        M11, M22, _ = sparse_tools.get_submatrices_bisection(root, M)
-
         t0 = time.time()
         c0 = time.clock()
-        S1 = compute_search_space(root.left_child, K11, M11, n_s/2, n_s_min)
-        S2 = compute_search_space(root.right_child, K22, M22, n_s-n_s/2, n_s_min)
+        d, X = compute_search_space(root, K, M, lambda_c/s, n_s_min, n_s)
         c1 = time.clock()
         t1 = time.time()
 
-        del K11; del M11
-        del K22; del M22
-
-        # combine search spaces
-        S = SL.block_diag(S1, S2)
-        S = ML.matrix(S)
-
         iperm = NP.argsort(perm)
-        S = S[iperm,:]
+        X = X[iperm,:]
 
         fmt = 'Search space computed ({:.1f}s {:.1f}s)'
         show( fmt.format(t1-t0, c1-c0) )
 
         del t0; del t1
         del c0; del c1
-        del S1; del S2
 
 
         # use subspace iterations for solutions
@@ -247,7 +260,7 @@ def execute(options, A, B, lambda_c):
         t0 = time.time()
         c0 = time.clock()
         d, X, eta, delta = subspace_iteration.execute( \
-                K, M, S, lambda_c/s, sigma/s, eta_max, delta_max)
+                K, M, X, lambda_c/s, sigma/s, eta_max, delta_max)
         c1 = time.clock()
         t1 = time.time()
 

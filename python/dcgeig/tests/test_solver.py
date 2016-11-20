@@ -62,15 +62,19 @@ class Test_compute_search_space(unittest.TestCase):
 
         K = SS.spdiags(1.0 * NP.arange(1,n+1), 0, n, n, format='csc')
         M = SS.identity(n, dtype=K.dtype, format='csc')
-        n_s = 1
+        lambda_c = 1.0
         n_s_min = 1
+        n_s = 1
 
-        S = solver.compute_search_space(node, K, M, n_s, n_s_min)
+        d, S = solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
 
+        self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
         self.assertEqual( S.shape[1], n_s )
 
+
         eps = NP.finfo(K.dtype).eps
+        self.assertTrue( max(d - 1) <= eps)
         self.assertTrue( abs(S[0,0]) >= 1-eps )
         self.assertTrue( abs(S[0,0]) <= 1+eps )
         self.assertTrue( abs(S[1,0]) <= eps )
@@ -85,11 +89,13 @@ class Test_compute_search_space(unittest.TestCase):
 
         K = SS.spdiags(1.0 * NP.arange(1, n+1), 0, n, n, format='csc')
         M = SS.identity(n, dtype=K.dtype, format='csc')
-        n_s = 2
+        lambda_c = 1.0
         n_s_min = 1
+        n_s = 2
 
-        S = solver.compute_search_space(node, K, M, n_s, n_s_min)
+        d, S = solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
 
+        self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
         self.assertEqual( S.shape[1], n_s )
 
@@ -112,8 +118,13 @@ class Test_compute_search_space(unittest.TestCase):
 
         K, M = gallery.fem_laplacian_2D_rectangle(n1, a, n2, b)
 
-        S = solver.compute_search_space(node, K, M, 4, 2)
+        lambda_c = 2 * NP.pi**2
+        n_s_min = 2
+        n_s = 4
 
+        d, S = solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
+
+        self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], K.shape[0] )
         self.assertEqual( S.shape[1], 4 )
 
