@@ -241,13 +241,8 @@ def execute(options, A, B, lambda_c):
 
 
         # use subspace iterations for solutions
-        M = B[:,t][t,:]
-        K = A[:,t][t,:]
-
-        s, D = sparse_tools.balance_matrix_pencil(K, M)
-        K = SS.csc_matrix(D * K * D)
-        M = SS.csc_matrix(D * (s*M) * D)
-
+        K = SS.csc_matrix(D * A[:,t][t,:] * D)
+        M = SS.csc_matrix(D * (s*B[:,t][t,:]) * D)
 
         t0 = time.time()
         c0 = time.clock()
