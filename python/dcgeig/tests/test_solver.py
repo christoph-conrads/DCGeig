@@ -62,7 +62,7 @@ class Test_compute_search_space(unittest.TestCase):
 
         K = SS.spdiags(1.0 * NP.arange(1,n+1), 0, n, n, format='csc')
         M = SS.identity(n, dtype=K.dtype, format='csc')
-        lambda_c = 1.0
+        lambda_c = 0.5
         n_s_min = 1
         n_s = 1
 
@@ -70,7 +70,7 @@ class Test_compute_search_space(unittest.TestCase):
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
-        self.assertEqual( S.shape[1], n_s )
+        self.assertTrue( S.shape[1] >= n_s )
 
 
         eps = NP.finfo(K.dtype).eps
@@ -193,6 +193,7 @@ class Test_execute(unittest.TestCase):
 
         options = dcgeig.options.Options()
         options.eta_max = 1e-10
+        options.n_s_min = 1
         options.n_direct = 1
         options.num_trial_vectors = 5
 

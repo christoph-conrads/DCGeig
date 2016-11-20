@@ -15,7 +15,6 @@ import numpy.random
 
 import scipy.linalg as SL
 import scipy.sparse as SS
-import scipy.sparse.linalg as LA
 
 import dcgeig.error_analysis as error_analysis
 import dcgeig.linalg as linalg
@@ -79,20 +78,19 @@ def compute_search_space(node, K, M, lambda_c, n_s_min, n_s):
     assert lambda_c > 0
     assert isinstance(n_s_min, int)
     assert n_s_min > 0
+    assert n_s_min <= K.shape[0]
     assert isinstance(n_s, int)
-    assert n_s > 0
-    assert K.shape[0] > n_s
+    assert n_s >= 0
 
 
-    if n_s <= n_s_min or node.is_leaf_node():
-        LL = linalg.spll(K)
-        solve = LA.aslinearoperator(LL)
+    if node.is_leaf_node() or 2*n_s >= K.shape[0]:
+        d, X = linalg.rayleigh_ritz(K, M)
 
-        n = K.shape[0]
-        v0 = NP.ones([n,1], dtype=K.dtype)
-        d, X = LA.eigsh(K, M=M, k=n_s, sigma=0, OPinv=solve, v0=v0, tol=1e-1)
+        n_c = NP.sum(d <= lambda_c)
+        # 2*n_c <= n because 2*n_s >= n and n_s is at least as large as n_c
+        n_t = max(n_s, 2*n_c, n_s_min)
 
-        return d, ML.matrix(X)
+        return d[:n_t], X[:,:n_t]
 
 
     K11, K22, _ = sparse_tools.get_submatrices_bisection(node, K)
@@ -130,17 +128,20 @@ def compute_search_space(node, K, M, lambda_c, n_s_min, n_s):
         t = d <= lambda_c
         t[0] = True
 
-        fmt = 'CSS {:d}  {:6d} {:4d} {:4d}  {:8.2e} {:8.2e} {:8.2e}  {:8.2e} {:8.2e}'
+        fmt = 'CSS {:d}  {:6d} {:4d} {:4d} {:4d}  {:8.2e} {:8.2e} {:8.2e}  {:8.2e} {:8.2e}'
         n = K.shape[0]
         n_c = NP.sum(d <= lambda_c)
         print fmt.format( \
-                k, n, n_s, n_c, NP.median(eta), NP.max(eta), NP.max(eta[t]), NP.min(d) / lambda_c,
+                k, n, n_s, d.size, n_c, NP.median(eta), NP.max(eta), NP.max(eta[t]), NP.min(d) / lambda_c,
                 NP.max(d) / lambda_c)
 
         if max(eta[t]) < NP.finfo(NP.float32).eps:
             break
 
-    return d, X
+    n_c = NP.sum(d <= lambda_c)
+    n_t = max(n_s, 2*n_c)
+
+    return d[:n_t], X[:,:n_t]
 
 
 
