@@ -257,8 +257,7 @@ def execute(options, A, B, lambda_c):
         del t0; del t1
         del c0; del c1
 
-
-        return s*d, X, eta, s*delta
+        return s*d, D*X, eta, s*delta
 
 
     rs = map( call_solve_gep, range(l) )

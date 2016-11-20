@@ -166,6 +166,51 @@ class Test_execute(unittest.TestCase):
         self.assertTrue( NP.all(delta < options.delta_max) )
 
 
+    def test_revert_balancing(self):
+        n = 8
+        h = 1.0 / (n+1)
+
+        A = gallery.fdm_laplacian_1D(n)
+        B = SS.identity(n)
+
+        D = SS.identity(n, format='lil')
+        D[0,0] = 8
+        D[1,1] = 128
+
+        K = SS.csc_matrix(D * A * D)
+        M = SS.csc_matrix(D * B * D)
+
+        options = dcgeig.options.Options()
+        options.eta_max = 1e-10
+        options.n_direct = 1
+        options.num_trial_vectors = 5
+
+        eigvals = 2 / h**2 * (1 - NP.cos(NP.pi * NP.arange(1,n+1) / (n+1)))
+        eigvals = NP.sort(eigvals)
+        lambda_c = (eigvals[0] + eigvals[1]) / 2
+        d0 = min(eigvals)
+        x0 = NP.sin(NP.pi * NP.arange(1,n+1) / (n+1) ).reshape([n,1])
+        y0 = SL.solve(D.todense(), x0)
+
+        rs, labels = solver.execute(options, K, M, lambda_c)
+
+        self.assertEqual( len(rs), 1 )
+        self.assertEqual( labels.size, n )
+
+        l = labels[0]
+        d = rs[l][0]
+        X = rs[l][1]
+
+        self.assertIsInstance(d, NP.ndarray)
+        self.assertIsInstance(X, NP.ndarray)
+        self.assertEqual( d.size, 1 )
+        self.assertEqual( X.shape[0], n )
+
+        eps32 = NP.finfo(NP.float32).eps
+        self.assertTrue( (d - d0) <= eps32 )
+        self.assertTrue( SL.norm(X / X[0,0] - y0 / y0[0]) <= eps32 )
+
+
 
     def test_zero_estimate(self):
         n = 4
