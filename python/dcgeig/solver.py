@@ -99,8 +99,11 @@ def compute_search_space(node, K, M, lambda_c, n_s_min, n_s):
     left = node.left_child
     right = node.right_child
 
-    d1, X1 = compute_search_space(left, K11, M11, lambda_c, n_s_min, n_s/2)
-    d2, X2 = compute_search_space(right, K22, M22, lambda_c, n_s_min, n_s-n_s/2)
+    n_sl = n_s-n_s/2 if left.n >= right.n else n_s/2
+    n_sr = n_s - n_sl
+
+    d1, X1 = compute_search_space(left, K11, M11, lambda_c, n_s_min, n_sl)
+    d2, X2 = compute_search_space(right, K22, M22, lambda_c, n_s_min, n_sr)
 
     del K11; del M11
     del K22; del M22
