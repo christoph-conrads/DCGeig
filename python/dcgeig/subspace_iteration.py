@@ -21,8 +21,6 @@ import scipy.sparse.linalg as LA
 
 import time
 
-import matplotlib.pyplot as PP
-
 
 
 def inverse_iteration( \
@@ -93,9 +91,6 @@ def execute( \
     cs = lambda_s
 
     for i in range(1, max_num_iterations+1):
-        t0 = time.time()
-        c0 = time.clock()
-
         options = {'SymmetricMode': True}
         LL0 = LA.splu(SS.csc_matrix(K - lambda_c * M), options=options)
         for k in range(3):
@@ -108,37 +103,9 @@ def execute( \
         del LL1
         del A
 
-        c1 = time.clock()
-        t1 = time.time()
-
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
-        c2 = time.clock()
-        t2 = time.time()
 
-        fmt = 'SI  {:6d} {:4d}  {:6.1f} {:6.1f}  {:6.1f} {:6.1f}'
-        n = X.shape[0]
-        m = X.shape[1]
-        print fmt.format(n, m, t1-t0, c1-c0, t2-t1, c2-c1)
-
-        PP.figure()
-        PP.plot( d/lambda_c, eta )
-        PP.plot( d/lambda_c, delta/d )
-        axes = PP.gca()
-        axes.set_xlim([0, 10])
-        PP.yscale('log')
-        PP.title( 'Iteration {:d}: Errors over eigenvalues'.format(i) )
-
-        PP.figure()
-        PP.plot( NP.arange(m), eta )
-        PP.plot( NP.arange(m), delta/d )
-        PP.yscale('log')
-        PP.title( 'Iteration {:d}: Errors over indices'.format(i) )
-
-        PP.figure()
-        PP.plot( NP.arange(m), (d-delta)/lambda_c )
-        PP.yscale('log')
-        PP.title( 'Iteration {:d}: Eigenvalues'.format(i) )
 
         t = d <= lambda_c
         u = d - delta <= lambda_c
@@ -152,7 +119,6 @@ def execute( \
         if max(eta[t]) < eta_max and max(delta[t]/d[t]) < delta_max:
             break
 
-    PP.show()
 
     assert not NP.any(NP.isinf(d))
     assert not NP.any(NP.isnan(d))
