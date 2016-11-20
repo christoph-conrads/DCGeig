@@ -22,7 +22,7 @@ import scipy.sparse.linalg as LA
 
 
 
-class Test_inverse_iteration(unittest.TestCase):
+class Test_heaviside_chebyshev(unittest.TestCase):
     def test_simple(self):
         n = 4
         dtype = NP.float32
@@ -44,14 +44,14 @@ class Test_inverse_iteration(unittest.TestCase):
 
         tol = 0.99
 
-        x = subspace_iteration.inverse_iteration(solve, K, M, b, 10*min(ds), 7)
+        x = subspace_iteration.heaviside_chebyshev(solve, K, M, b, 10*min(ds), 7)
         x = x / SL.norm(x)
 
         self.assertTrue( X[:,0].H * x > tol )
         self.assertEqual( x.dtype, b.dtype )
 
         y = ML.copy(b)
-        ret = subspace_iteration.inverse_iteration( \
+        ret = subspace_iteration.heaviside_chebyshev( \
                 solve, K, M, y, 10*min(ds), 7, overwrite_b=True)
         y = y / SL.norm(y)
 

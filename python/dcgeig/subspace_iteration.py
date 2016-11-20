@@ -23,8 +23,8 @@ import time
 
 
 
-def inverse_iteration( \
-        solve, K, M, B, sigma,
+def heaviside_chebyshev( \
+        solve, K, M, B, omega,
         polynomial_degree, block_size=256, overwrite_b=False):
     assert callable(solve)
     assert SS.isspmatrix(K)
@@ -32,8 +32,8 @@ def inverse_iteration( \
     assert isinstance(B, NP.ndarray)
     assert K.shape[0] == B.shape[0]
     assert M.shape[0] == B.shape[0]
-    assert isinstance(sigma, numbers.Real)
-    assert sigma > 0
+    assert isinstance(omega, numbers.Real)
+    assert omega > 0
     assert isinstance(polynomial_degree, int)
     assert polynomial_degree > 0
     assert isinstance(block_size, int)
@@ -43,7 +43,7 @@ def inverse_iteration( \
     X = B if overwrite_b else NP.copy(B)
 
     a = 0
-    b = 1/sigma
+    b = 1/omega
     c = (b + a) / 2
     e = (b - a) / 2
 
@@ -54,7 +54,7 @@ def inverse_iteration( \
     js = polynomial.compute_jackson_coefficients(polynomial_degree)
     ps = js * cs
 
-    c1 = 2 * sigma
+    c1 = 2 * omega
     c2 = 1
     eval_poly = polynomial.evaluate_matrix_polynomial
 
@@ -99,7 +99,7 @@ def execute( \
 
         A = SS.csc_matrix(K + lambda_c * M)
         LL1 = linalg.spll(A)
-        inverse_iteration(LL1.solve, A, M, X, cs, 11, overwrite_b=True)
+        heaviside_chebyshev(LL1.solve, A, M, X, cs, 11, overwrite_b=True)
         del LL1
         del A
 
