@@ -196,7 +196,7 @@ def extract_key_quantities(lambda_c, rs, labels):
     if n_c == 0:
         return n_c, None, None
 
-    return n_c, max(eta[t]), max(delta[t])
+    return n_c, max(eta[t]), max(delta[t]/d[t])
 
 
 
