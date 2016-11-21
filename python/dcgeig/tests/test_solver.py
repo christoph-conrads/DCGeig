@@ -56,7 +56,7 @@ class Test_estimate_eigenvalue_count(unittest.TestCase):
 
 class Test_compute_search_space(unittest.TestCase):
     def test_leaf_node(self):
-        n = 2
+        n = 3
 
         node = binary_tree.make_leaf_node(n)
 
@@ -66,15 +66,17 @@ class Test_compute_search_space(unittest.TestCase):
         n_s_min = 1
         n_s = 1
 
-        d, S = solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
+        d, S, eta, delta = \
+            solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
         self.assertTrue( S.shape[1] >= n_s )
-
+        self.assertTrue( eta.size <= d.size )
+        self.assertTrue( delta.size == eta.size )
 
         eps = NP.finfo(K.dtype).eps
-        self.assertTrue( max(d - 1) <= eps)
+        self.assertTrue( abs(min(d) - 1) <= eps)
         self.assertTrue( abs(S[0,0]) >= 1-eps )
         self.assertTrue( abs(S[0,0]) <= 1+eps )
         self.assertTrue( abs(S[1,0]) <= eps )
@@ -93,11 +95,13 @@ class Test_compute_search_space(unittest.TestCase):
         n_s_min = 1
         n_s = 2
 
-        d, S = solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
+        d, S, _, _ = \
+            solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
-        self.assertEqual( S.shape[1], n_s )
+        self.assertTrue( S.shape[1] >= n_s )
+        self.assertTrue( S.shape[1] <= 2*n_s )
 
         Q = linalg.orthogonalize(S)
 
@@ -122,11 +126,13 @@ class Test_compute_search_space(unittest.TestCase):
         n_s_min = 2
         n_s = 4
 
-        d, S = solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
+        d, S, _, _ = \
+            solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], K.shape[0] )
-        self.assertEqual( S.shape[1], 4 )
+        self.assertTrue( S.shape[1] >= n_s )
+        self.assertTrue( S.shape[1] <= 2*n_s )
 
         Q = linalg.orthogonalize(S)
         A = Q.H * K * Q

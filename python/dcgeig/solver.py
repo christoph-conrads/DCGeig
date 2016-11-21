@@ -80,17 +80,17 @@ def compute_search_space(node, K, M, lambda_c, n_s_min, n_s):
     assert n_s_min > 0
     assert n_s_min <= K.shape[0]
     assert isinstance(n_s, int)
-    assert n_s >= 0
+    assert n_s > 0
+    assert n_s <= K.shape[0]/2
 
 
-    if node.is_leaf_node() or 2*n_s >= K.shape[0]:
+    if n_s <= n_s_min or node.is_leaf_node():
         d, X = linalg.rayleigh_ritz(K, M)
 
         n_c = NP.sum(d <= lambda_c)
-        # 2*n_c <= n because 2*n_s >= n and n_s is at least as large as n_c
-        n_t = max(n_s, 2*n_c, n_s_min)
+        n_t = 2 * max(n_s, n_c)
 
-        return d[:n_t], X[:,:n_t]
+        return d[:n_t], X[:,:n_t], NP.empty(0), NP.empty(0)
 
 
     K11, K22, _ = sparse_tools.get_submatrices_bisection(node, K)
@@ -102,49 +102,55 @@ def compute_search_space(node, K, M, lambda_c, n_s_min, n_s):
     n_sl = n_s-n_s/2 if left.n >= right.n else n_s/2
     n_sr = n_s - n_sl
 
-    d1, X1 = compute_search_space(left, K11, M11, lambda_c, n_s_min, n_sl)
-    d2, X2 = compute_search_space(right, K22, M22, lambda_c, n_s_min, n_sr)
+    d1, X1, _, _ = compute_search_space(left, K11, M11, lambda_c, n_s_min, n_sl)
+    d2, X2, _, _ = compute_search_space(right, K22, M22, lambda_c, n_s_min, n_sr)
 
     del K11; del M11
     del K22; del M22
 
     # combine search spaces
+    d = NP.concatenate([d1, d2])
     X = SL.block_diag(X1, X2)
     X = ML.matrix(X)
-
-    d_max = max(max(d1), max(d2))
 
     del d1; del d2
     del X1; del X2
 
+    i = NP.argsort(d)
+    d = d[i]
+    X = X[:,i]
+
     LL = linalg.spll(K)
+
+    n_c = NP.sum(d <= lambda_c)
+    n_t = max(n_s, 2*n_c)
+    d_max = max(d[:n_t])
 
     for k in range(10):
         subspace_iteration.minmax_chebyshev( \
-            LL.solve, K, M, X, d_max, 2, overwrite_b=True)
+                LL.solve, K, M, X[:,:n_t], d_max, 2, overwrite_b=True)
 
-        d, X = linalg.rayleigh_ritz(K, M, X)
-        eta, delta = error_analysis.compute_errors(K, M, d, X)
+        d[:n_t], X[:,:n_t] = linalg.rayleigh_ritz(K, M, X[:,:n_t])
+        eta, delta = error_analysis.compute_errors(K, M, d[:n_t], X[:,:n_t])
 
-        d_max = max(d)
-
-        t = d <= lambda_c
+        t = d[:n_t] <= lambda_c
         t[0] = True
+
+        n_c = NP.sum(d <= lambda_c)
+        n_t = max(n_s, 2*n_c)
+        d_max = max(d[:n_t])
 
         fmt = 'CSS {:d}  {:6d} {:4d} {:4d} {:4d}  {:8.2e} {:8.2e} {:8.2e}  {:8.2e} {:8.2e}'
         n = K.shape[0]
-        n_c = NP.sum(d <= lambda_c)
         print fmt.format( \
-                k, n, n_s, d.size, n_c, NP.median(eta), NP.max(eta), NP.max(eta[t]), NP.min(d) / lambda_c,
-                NP.max(d) / lambda_c)
+                k, n, d.size, n_s, n_c,
+                NP.median(eta), NP.max(eta), NP.max(eta[t]),
+                NP.min(d) / lambda_c, NP.max(d) / lambda_c)
 
         if max(eta[t]) < NP.finfo(NP.float32).eps:
             break
 
-    n_c = NP.sum(d <= lambda_c)
-    n_t = max(n_s, 2*n_c)
-
-    return d[:n_t], X[:,:n_t]
+    return d, X, eta, delta
 
 
 
@@ -186,7 +192,7 @@ def execute(options, A, B, lambda_c):
             return d[u], X[:,u], eta[u], delta[u]
 
 
-        sigma = 5 * lambda_c
+        sigma = 2 * lambda_c
         M = B[:,t][t,:]
         K = A[:,t][t,:] + sigma * M
 
@@ -243,7 +249,8 @@ def execute(options, A, B, lambda_c):
         # compute search space
         t0 = time.time()
         c0 = time.clock()
-        d, X = compute_search_space(root, K, M, lambda_c/s, n_s_min, n_s)
+        d, X, eta, delta = \
+                compute_search_space(root, K, M, lambda_c/s, n_s_min, n_s)
         c1 = time.clock()
         t1 = time.time()
 
@@ -255,6 +262,13 @@ def execute(options, A, B, lambda_c):
 
         del t0; del t1
         del c0; del c1
+
+
+        # test for early return
+        n_c = NP.sum(d <= lambda_c/s)
+
+        if max(eta[:n_c]) <= eta_max and max(delta[:n_c]/d[:n_c]) <= delta_max:
+            return s*d[:n_c], D*X[:,:n_c], eta[:n_c], s*delta[:n_c]
 
 
         # use subspace iterations for solutions
