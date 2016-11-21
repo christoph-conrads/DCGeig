@@ -91,6 +91,13 @@ def make_argument_parser(default_options):
         type=check_if_positive_integer,
         help='maximum dimension for direct GEP solves')
 
+    parser.add_argument(
+        '-t', '--tolerance',
+        metavar='tol',
+        default=default_options.eta_max,
+        type=check_if_positive_real,
+        help='maximum backward error')
+
 
     parser.add_argument(
         '-q', '--quiet',
@@ -140,8 +147,14 @@ def sanitize_input(options, user_options):
     options.lambda_c = user_options.cutoff
     options.k_path = normalize_path( user_options.file )
     options.n_direct = user_options.max_dim_direct_solve
+    options.eta_max = user_options.tolerance
     options.be_quiet = user_options.quiet
     options.show = options.show if options.be_quiet else print_message
+
+
+    # backward error
+    if not NP.isfinite(user_options.tolerance) or user_options.tolerance >= 1:
+        raise ValueError('tolerance must be between zero and one')
 
 
     # get stiffness matrix
