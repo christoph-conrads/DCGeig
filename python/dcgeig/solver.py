@@ -97,6 +97,9 @@ def compute_search_space_sizes(n_s_min, lambda_1, lambda_c, d, b, node,K,M,n_s):
         new_node = copy.copy(node)
         new_node.n_s = n_s
 
+        new_node.left_child = None
+        new_node.right_child = None
+
         return new_node
 
 
