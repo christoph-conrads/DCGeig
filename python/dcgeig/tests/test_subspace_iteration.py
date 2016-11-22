@@ -70,7 +70,7 @@ class Test_subspace_iteration(unittest.TestCase):
         x0 = ML.matrix(1.0 * NP.arange(1, n+1)).H
 
         d, X, eta, delta = \
-            subspace_iteration.execute(K, M, x0, 0.5, 1.0, 1e-8, 1e-2)
+            subspace_iteration.execute(K, M, x0, 0.5, 1e-8, 1e-2)
 
         self.assertEqual( d.size, 0 )
 
@@ -86,10 +86,9 @@ class Test_subspace_iteration(unittest.TestCase):
         b = ML.matrix( [xs, NP.ones(n)] ).H
 
         d_min = 2 * NP.pi**2
-        d_max = (n * NP.pi)**2
 
         d, X, _, _ = \
-            subspace_iteration.execute(K, M, b, 1.5*d_min, d_max, 1e-8, 1e-2)
+            subspace_iteration.execute(K, M, b, 1.5*d_min, 1e-8, 1e-2)
 
         self.assertEqual( d.size, 1 )
         self.assertEqual( X.shape[0], K.shape[0] )
