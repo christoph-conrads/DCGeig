@@ -289,15 +289,21 @@ def execute(options, A, B, lambda_c):
 
         t0 = time.time()
         c0 = time.clock()
+
         mean, std = estimate_eigenvalue_count( \
             K+sigma*M, M, sigma, 2*sigma, poly_degree, n_trial)
-        c1 = time.clock()
-        t1 = time.time()
 
         if mean+std < 0.5:
             return NP.ones(0), ML.ones([n,0]), NP.ones(0), NP.ones(0)
 
         n_s = int( NP.ceil(mean + std) )
+
+        root = compute_search_space_sizes( \
+                n_s_min, sigma, 2*sigma, poly_degree, n_trial, \
+                root, K+sigma*M, M, n_s)
+
+        c1 = time.clock()
+        t1 = time.time()
 
         fmt = 'Estimated eigenvalue count: {:d} ({:.1f}s {:.1f}s)'
         show( fmt.format(n_s, t1-t0, c1-c0) )

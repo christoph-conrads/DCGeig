@@ -228,7 +228,7 @@ class Test_execute(unittest.TestCase):
 
 
     def test_revert_balancing(self):
-        n = 8
+        n = 12
         h = 1.0 / (n+1)
 
         A = gallery.fdm_laplacian_1D(n)
@@ -244,7 +244,7 @@ class Test_execute(unittest.TestCase):
         options = dcgeig.options.Options()
         options.eta_max = 1e-10
         options.n_s_min = 1
-        options.n_direct = 1
+        options.n_direct = 11
         options.num_trial_vectors = 5
 
         eigvals = 2 / h**2 * (1 - NP.cos(NP.pi * NP.arange(1,n+1) / (n+1)))
@@ -301,6 +301,7 @@ class Test_execute(unittest.TestCase):
         options = dcgeig.options.Options()
         options.n_direct = 50
         options.n_s_min = 1
+        options.num_trial_vectors = 24
 
         sigma = NP.pi**2 * ( (2.0/a)**2 + (3.0/b)**2) + 1
         rs, labels = solver.execute(options, K, M, sigma)
