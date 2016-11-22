@@ -112,8 +112,7 @@ def compute_search_space_sizes(n_s_min, lambda_1, lambda_c, d, b, node,K,M,n_s):
     n_l = mean1 + std1
     n_r = mean2 + std2
 
-    c = 1.0 if n_s <= n_l + n_r else n_s / (n_l + n_r)
-    assert c >= 1
+    c = n_s / (n_l + n_r)
 
     n_sl = int(NP.ceil(c * n_l))
     n_sr = int(NP.ceil(c * n_r))
@@ -154,9 +153,7 @@ def compute_search_space(lambda_c, node, K, M):
         assert n_s <= K.shape[0]/2
 
         n_c = NP.sum(d <= lambda_c)
-        assert n_c <= n_s
-
-        m = 2 * n_s
+        m = 2 * max(n_s, n_c)
         return d[:m], X[:,:m], NP.empty(0), NP.empty(0)
 
 
