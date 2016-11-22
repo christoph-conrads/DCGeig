@@ -16,6 +16,7 @@ import numpy.random
 import scipy.linalg as SL
 import scipy.sparse as SS
 
+import dcgeig.binary_tree as binary_tree
 import dcgeig.error_analysis as error_analysis
 import dcgeig.linalg as linalg
 import dcgeig.options
@@ -23,6 +24,8 @@ import dcgeig.polynomial as polynomial
 import dcgeig.sparse_tools as sparse_tools
 import dcgeig.subspace_iteration as subspace_iteration
 import dcgeig.utils as utils
+
+import copy
 
 import time
 
@@ -68,6 +71,66 @@ def estimate_eigenvalue_count(K, M, lambda_1, lambda_c, d, b):
     mean, std = estimate_trace(f, n, b, K.dtype)
 
     return mean, std
+
+
+
+# /size/ of a search space = dimension of the search space
+def compute_search_space_sizes(n_s_min, lambda_1, lambda_c, d, b, node,K,M,n_s):
+    assert isinstance(n_s_min, int)
+    assert n_s_min >= 0
+    assert isinstance(lambda_1, numbers.Real)
+    assert lambda_1 > 0
+    assert isinstance(lambda_c, numbers.Real)
+    assert lambda_c > lambda_1
+    assert isinstance(d, int)
+    assert d > 0
+    assert isinstance(b, int)
+    assert b > 0
+    assert isinstance(node, binary_tree.Node)
+    assert SS.isspmatrix(K)
+    assert SS.isspmatrix(M)
+    assert isinstance(n_s, int)
+    assert n_s > 0
+
+
+    if n_s <= n_s_min or node.is_leaf_node():
+        new_node = copy.copy(node)
+        new_node.n_s = n_s
+
+        return new_node
+
+
+    K11, K22, _ = sparse_tools.get_submatrices_bisection(node, K)
+    M11, M22, _ = sparse_tools.get_submatrices_bisection(node, M)
+
+    mean1, std1 = estimate_eigenvalue_count(K11, M11, lambda_1, lambda_c, d, b)
+    mean2, std2 = estimate_eigenvalue_count(K22, M22, lambda_1, lambda_c, d, b)
+
+    n_l = mean1 + std1
+    n_r = mean2 + std2
+
+    c = 1.0 if n_s <= n_l + n_r else n_s / (n_l + n_r)
+    assert c >= 1
+
+    n_sl = int(NP.ceil(c * n_l))
+    n_sr = int(NP.ceil(c * n_r))
+
+    left = node.left_child
+    right = node.right_child
+
+    new_left = compute_search_space_sizes( \
+            n_s_min, lambda_1, lambda_c, d, b, left, K11, M11, n_sl)
+    new_right = compute_search_space_sizes( \
+            n_s_min, lambda_1, lambda_c, d, b, right, K22, M22, n_sr)
+
+    new_node = copy.copy(node)
+    new_node.n_s = new_left.n_s + new_right.n_s
+    new_node.left_child = new_left
+    new_node.right_child = new_right
+
+    assert new_node.n_s >= n_s
+
+    return new_node
 
 
 
