@@ -177,9 +177,16 @@ def compute_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
 
 
 
-def compute_search_space(lambda_c, node, K, M):
+def compute_search_space(lambda_c, eta_max, delta_max, node, K, M):
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
+    assert isinstance(eta_max, numbers.Real)
+    assert eta_max > 0
+    assert eta_max < 1
+    assert isinstance(delta_max, numbers.Real)
+    assert delta_max > 0
+    assert delta_max <= 1
+    assert delta_max >= eta_max
     assert isinstance(node, binary_tree.Node)
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
@@ -204,8 +211,10 @@ def compute_search_space(lambda_c, node, K, M):
     left = node.left_child
     right = node.right_child
 
-    d1, X1, _, _ = compute_search_space(lambda_c, left, K11, M11)
-    d2, X2, _, _ = compute_search_space(lambda_c, right, K22, M22)
+    d1, X1, _, _ = \
+        compute_search_space(lambda_c, eta_max, delta_max, left, K11, M11)
+    d2, X2, _, _ = \
+        compute_search_space(lambda_c, eta_max, delta_max, right, K22, M22)
 
     del K11; del M11
     del K22; del M22
@@ -242,7 +251,7 @@ def compute_search_space(lambda_c, node, K, M):
                 NP.median(eta), NP.max(eta), NP.max(eta[t]),
                 NP.min(d) / lambda_c, NP.max(d) / lambda_c)
 
-        if max(eta[t]) < NP.finfo(NP.float32).eps:
+        if max(eta[t]) < eta_max and max(delta[t]/d[t]) < delta_max:
             break
 
     return d, X, eta, delta
@@ -345,7 +354,8 @@ def execute(options, A, B, lambda_c):
         # compute search space
         t0 = time.time()
         c0 = time.clock()
-        d, X, eta, delta = compute_search_space(lambda_c/s, root, K, M)
+        d, X, eta, delta = \
+            compute_search_space(lambda_c/s, eta_max, delta_max, root, K, M)
         c1 = time.clock()
         t1 = time.time()
 

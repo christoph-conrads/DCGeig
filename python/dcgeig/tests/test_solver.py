@@ -106,7 +106,11 @@ class Test_compute_search_space(unittest.TestCase):
         M = SS.identity(n, dtype=K.dtype, format='csc')
         lambda_c = 0.5
 
-        d, S, eta, delta = solver.compute_search_space(lambda_c, node, K, M)
+        eta_max = NP.finfo(NP.float32).eps
+        delta_max = 1.0
+
+        d, S, eta, delta = \
+            solver.compute_search_space(lambda_c, eta_max, delta_max, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
@@ -133,9 +137,13 @@ class Test_compute_search_space(unittest.TestCase):
 
         K = SS.spdiags(1.0 * NP.arange(1, n+1), 0, n, n, format='csc')
         M = SS.identity(n, dtype=K.dtype, format='csc')
-        lambda_c = 1.0
 
-        d, S, _, _ = solver.compute_search_space(lambda_c, node, K, M)
+        lambda_c = 1.0
+        eta_max = NP.finfo(NP.float32).eps
+        delta_max = 1.0
+
+        d, S, _, _ = \
+            solver.compute_search_space(lambda_c, eta_max, delta_max, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
@@ -165,8 +173,11 @@ class Test_compute_search_space(unittest.TestCase):
         K, M = gallery.fem_laplacian_2D_rectangle(n1, a, n2, b)
 
         lambda_c = 2 * NP.pi**2
+        eta_max = NP.finfo(NP.float32).eps
+        delta_max = 1.0
 
-        d, S, _, _ = solver.compute_search_space(lambda_c, node, K, M)
+        d, S, _, _ = \
+            solver.compute_search_space(lambda_c, eta_max, delta_max, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], K.shape[0] )
