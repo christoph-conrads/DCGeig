@@ -54,19 +54,18 @@ class Test_estimate_eigenvalue_count(unittest.TestCase):
 
 
 
-class Test_compute_search_space_sizes(unittest.TestCase):
+class Test_estimate_search_space_sizes(unittest.TestCase):
     def test_simple(self):
         n = 3
-        K = NP.nan * SS.identity(n)
-        M = NP.nan * SS.identity(n)
+        K = SS.spdiags(1.0 * NP.arange(1,n+1), 0, n, n, format='csc')
+        M = SS.identity(n)
 
         n_s = 2
 
         node = binary_tree.make_leaf_node(n)
-        new_node = solver.compute_search_space_sizes(\
-            30, 1.0, 2.0, 50, 50, node, K, M, n_s)
+        new_node = solver.estimate_search_space_sizes(30, 2.0, node, K, M, n_s)
 
-        self.assertEqual( new_node.n_s, n_s )
+        self.assertEqual( new_node.n_c, n_s )
 
 
 
@@ -74,27 +73,25 @@ class Test_compute_search_space_sizes(unittest.TestCase):
         n = 8
         h = 1.0 / (n+1)
         lambda_c = 2/h**2 * (1 - NP.cos(3*NP.pi/(n+1)))
-        lambda_1 = lambda_c / 2
 
         M = SS.identity(n**2, format='csc')
-        K = gallery.fdm_laplacian_2D(n) + lambda_1 * M
+        K = gallery.fdm_laplacian_2D(n)
 
         left = binary_tree.make_leaf_node(n**2/2)
         right = binary_tree.make_leaf_node(n**2/2)
         node = binary_tree.make_internal_node(left, right, n**2)
 
-        new_node = solver.compute_search_space_sizes( \
-                2, lambda_1, lambda_c, 50, 30, node, K, M, 4)
+        new_node = solver.estimate_search_space_sizes(2, lambda_c, node, K, M, 4)
 
         self.assertIsInstance(new_node, binary_tree.Node)
-        self.assertIsInstance(new_node.n_s, int)
-        self.assertTrue(new_node.n_s == 4)
+        self.assertIsInstance(new_node.n_c, int)
+        self.assertTrue(new_node.n_c == 4)
 
-        self.assertIsInstance(new_node.left_child.n_s, int)
-        self.assertEqual(new_node.left_child.n_s, 2 )
+        self.assertIsInstance(new_node.left_child.n_c, int)
+        self.assertEqual(new_node.left_child.n_c, 2 )
 
-        self.assertIsInstance(new_node.right_child.n_s, int)
-        self.assertEqual(new_node.right_child.n_s, 2 )
+        self.assertIsInstance(new_node.right_child.n_c, int)
+        self.assertEqual(new_node.right_child.n_c, 2 )
 
 
 

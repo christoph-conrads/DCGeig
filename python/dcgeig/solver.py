@@ -75,17 +75,11 @@ def estimate_eigenvalue_count(K, M, lambda_1, lambda_c, d, b):
 
 
 # /size/ of a search space = dimension of the search space
-def compute_search_space_sizes(n_s_min, lambda_1, lambda_c, d, b, node,K,M,n_s):
+def estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
     assert isinstance(n_s_min, int)
     assert n_s_min >= 0
-    assert isinstance(lambda_1, numbers.Real)
-    assert lambda_1 > 0
     assert isinstance(lambda_c, numbers.Real)
-    assert lambda_c > lambda_1
-    assert isinstance(d, int)
-    assert d > 0
-    assert isinstance(b, int)
-    assert b > 0
+    assert lambda_c > 0
     assert isinstance(node, binary_tree.Node)
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
@@ -94,9 +88,13 @@ def compute_search_space_sizes(n_s_min, lambda_1, lambda_c, d, b, node,K,M,n_s):
 
 
     if n_s <= n_s_min or node.is_leaf_node():
-        new_node = copy.copy(node)
-        new_node.n_s = n_s
+        d, X = linalg.rayleigh_ritz(K, M)
 
+        n_c = NP.sum(d <= lambda_c)
+
+        new_node = copy.copy(node)
+        new_node.n_c = max(n_c, 1)
+        new_node.n_s = n_s
         new_node.left_child = None
         new_node.right_child = None
 
@@ -106,33 +104,76 @@ def compute_search_space_sizes(n_s_min, lambda_1, lambda_c, d, b, node,K,M,n_s):
     K11, K22, _ = sparse_tools.get_submatrices_bisection(node, K)
     M11, M22, _ = sparse_tools.get_submatrices_bisection(node, M)
 
-    mean1, std1 = estimate_eigenvalue_count(K11, M11, lambda_1, lambda_c, d, b)
-    mean2, std2 = estimate_eigenvalue_count(K22, M22, lambda_1, lambda_c, d, b)
-
-    n_l = mean1 + std1
-    n_r = mean2 + std2
-
-    c = n_s / (n_l + n_r)
-
-    n_sl = int(NP.ceil(c * n_l))
-    n_sr = int(NP.ceil(c * n_r))
-
     left = node.left_child
     right = node.right_child
 
-    new_left = compute_search_space_sizes( \
-            n_s_min, lambda_1, lambda_c, d, b, left, K11, M11, n_sl)
-    new_right = compute_search_space_sizes( \
-            n_s_min, lambda_1, lambda_c, d, b, right, K22, M22, n_sr)
+    n_sl = n_s/2 if left.n <= right.n else n_s-n_s/2
+    n_sr = n_s - n_sl
+
+    new_left = estimate_search_space_sizes( \
+            n_s_min, lambda_c, left, K11, M11, n_sl)
+    new_right = estimate_search_space_sizes( \
+            n_s_min, lambda_c, right, K22, M22, n_sr)
 
     new_node = copy.copy(node)
-    new_node.n_s = new_left.n_s + new_right.n_s
+    new_node.n_c = new_left.n_c + new_right.n_c
+    new_node.n_s = n_s
     new_node.left_child = new_left
     new_node.right_child = new_right
 
-    assert new_node.n_s >= n_s
-
     return new_node
+
+
+
+def fix_search_space_sizes(n_s_min, c, node):
+    assert isinstance(n_s_min, int)
+    assert n_s_min >= 0
+    assert isinstance(c, numbers.Real)
+    assert c > 0
+    assert NP.isfinite(c)
+    assert isinstance(node, binary_tree.Node)
+
+    n_s = int( NP.ceil(c * node.n_c) )
+    new = copy.copy(node)
+
+    if n_s <= n_s_min or node.is_leaf_node():
+        new.left_child = None
+        new.right_child = None
+        new.n_s = n_s
+
+        return new
+
+
+    new.left_child = fix_search_space_sizes(n_s_min, c, node.left_child)
+    new.right_child = fix_search_space_sizes(n_s_min, c, node.right_child)
+    new.n_s = new.left_child.n_s + new.right_child.n_s
+
+    assert new.n_s >= new.n_c
+
+    return new
+
+
+
+def compute_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
+    assert isinstance(n_s_min, int)
+    assert n_s_min >= 0
+    assert isinstance(lambda_c, numbers.Real)
+    assert lambda_c > 0
+    assert isinstance(node, binary_tree.Node)
+    assert SS.isspmatrix(K)
+    assert SS.isspmatrix(M)
+    assert isinstance(n_s, int)
+    assert n_s > 0
+
+    node1 = estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s)
+
+    if node1.n_c > 0:
+        c = 1.0 * n_s / node1.n_c
+        assert c >= 1
+
+        return fix_search_space_sizes(n_s_min, c, node1)
+
+    return node1
 
 
 
@@ -203,9 +244,6 @@ def compute_search_space(lambda_c, node, K, M):
 
         if max(eta[t]) < NP.finfo(NP.float32).eps:
             break
-
-    n_c = NP.sum(d <= lambda_c)
-    assert n_c <= n_s
 
     return d, X, eta, delta
 
@@ -292,9 +330,7 @@ def execute(options, A, B, lambda_c):
 
         n_s = int( NP.ceil(mean + std) )
 
-        root = compute_search_space_sizes( \
-                n_s_min, sigma, 2*sigma, poly_degree, n_trial, \
-                root, K+sigma*M, M, n_s)
+        root = compute_search_space_sizes(n_s_min, lambda_c/s, root, K, M, n_s)
 
         c1 = time.clock()
         t1 = time.time()
