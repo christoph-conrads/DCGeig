@@ -255,9 +255,8 @@ def execute(options, A, B, lambda_c):
             return d[u], X[:,u], eta[u], delta[u]
 
 
-        sigma = 2 * lambda_c
+        K = A[:,t][t,:]
         M = B[:,t][t,:]
-        K = A[:,t][t,:] + sigma * M
 
         # normalize matrix norm
         I = SS.identity(n) / NP.sqrt(n)
@@ -273,11 +272,25 @@ def execute(options, A, B, lambda_c):
         K = SS.csc_matrix(D * K * D)
         M = SS.csc_matrix(D * (s*M) * D)
 
+
+        # compute partitioning
+        G = sparse_tools.matrix_to_graph(K)
+        root, perm = sparse_tools.multilevel_bisection(G, options.n_direct)
+        iperm = NP.argsort(perm)
+
+        K = K[:,perm][perm,:]
+        M = M[:,perm][perm,:]
+
+        del G
+
+
         # count eigenvalues
+        sigma = 5 * lambda_c/s
+
         t0 = time.time()
         c0 = time.clock()
         mean, std = estimate_eigenvalue_count( \
-            K, M, sigma/s, 2*sigma/s, poly_degree, n_trial)
+            K+sigma*M, M, sigma, 2*sigma, poly_degree, n_trial)
         c1 = time.clock()
         t1 = time.time()
 
@@ -293,22 +306,6 @@ def execute(options, A, B, lambda_c):
         del c0; del c1
 
 
-        # compute partitioning
-        K = A[:,t][t,:]
-        M = B[:,t][t,:]
-
-        s, D = sparse_tools.balance_matrix_pencil(K, M)
-        K = SS.csc_matrix(D * K * D)
-        M = SS.csc_matrix(D * (s*M) * D)
-
-        G = sparse_tools.matrix_to_graph(K)
-        root, perm = sparse_tools.multilevel_bisection(G, options.n_direct)
-
-        K = K[:,perm][perm,:]
-        M = M[:,perm][perm,:]
-
-        del G
-
         # compute search space
         t0 = time.time()
         c0 = time.clock()
@@ -316,9 +313,6 @@ def execute(options, A, B, lambda_c):
                 compute_search_space(root, K, M, lambda_c/s, n_s_min, n_s)
         c1 = time.clock()
         t1 = time.time()
-
-        iperm = NP.argsort(perm)
-        X = X[iperm,:]
 
         fmt = 'Search space computed ({:.1f}s {:.1f}s)'
         show( fmt.format(t1-t0, c1-c0) )
@@ -331,17 +325,14 @@ def execute(options, A, B, lambda_c):
         n_c = NP.sum(d <= lambda_c/s)
 
         if max(eta[:n_c]) <= eta_max and max(delta[:n_c]/d[:n_c]) <= delta_max:
-            return s*d[:n_c], D*X[:,:n_c], eta[:n_c], s*delta[:n_c]
+            return s*d[:n_c], D*X[iperm,:n_c], eta[:n_c], s*delta[:n_c]
 
 
         # use subspace iterations for solutions
-        K = SS.csc_matrix(D * A[:,t][t,:] * D)
-        M = SS.csc_matrix(D * (s*B[:,t][t,:]) * D)
-
         t0 = time.time()
         c0 = time.clock()
         d, X, eta, delta = subspace_iteration.execute( \
-                K, M, X, lambda_c/s, sigma/s, eta_max, delta_max)
+                K, M, X, lambda_c/s, sigma, eta_max, delta_max)
         c1 = time.clock()
         t1 = time.time()
 
@@ -351,7 +342,7 @@ def execute(options, A, B, lambda_c):
         del t0; del t1
         del c0; del c1
 
-        return s*d, D*X, eta, s*delta
+        return s*d, D*X[iperm,:], eta, s*delta
 
 
     rs = map( call_solve_gep, range(l) )
