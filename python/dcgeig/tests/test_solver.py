@@ -103,19 +103,17 @@ class Test_compute_search_space(unittest.TestCase):
         n = 3
 
         node = binary_tree.make_leaf_node(n)
+        node.n_s = 1
 
         K = SS.spdiags(1.0 * NP.arange(1,n+1), 0, n, n, format='csc')
         M = SS.identity(n, dtype=K.dtype, format='csc')
         lambda_c = 0.5
-        n_s_min = 1
-        n_s = 1
 
-        d, S, eta, delta = \
-            solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
+        d, S, eta, delta = solver.compute_search_space(lambda_c, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
-        self.assertTrue( S.shape[1] >= n_s )
+        self.assertTrue( S.shape[1] >= node.n_s )
         self.assertTrue( eta.size <= d.size )
         self.assertTrue( delta.size == eta.size )
 
@@ -130,22 +128,22 @@ class Test_compute_search_space(unittest.TestCase):
         n = 9
 
         left = binary_tree.make_leaf_node(n/2)
+        left.n_s = 1
         right = binary_tree.make_leaf_node(n-n/2)
+        right.n_s = 1
         node = binary_tree.make_internal_node(left, right, n)
+        node.n_s = 2
 
         K = SS.spdiags(1.0 * NP.arange(1, n+1), 0, n, n, format='csc')
         M = SS.identity(n, dtype=K.dtype, format='csc')
         lambda_c = 1.0
-        n_s_min = 1
-        n_s = 2
 
-        d, S, _, _ = \
-            solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
+        d, S, _, _ = solver.compute_search_space(lambda_c, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
-        self.assertTrue( S.shape[1] >= n_s )
-        self.assertTrue( S.shape[1] <= 2*n_s )
+        self.assertTrue( S.shape[1] >= node.n_s )
+        self.assertTrue( S.shape[1] <= 2*node.n_s )
 
         Q = linalg.orthogonalize(S)
 
@@ -161,22 +159,22 @@ class Test_compute_search_space(unittest.TestCase):
         m = n1*n2
 
         left = binary_tree.make_leaf_node(m/2)
+        left.n_s = 2
         right = binary_tree.make_leaf_node(m-m/2)
+        right.n_s = 2
         node = binary_tree.make_internal_node(left, right, m)
+        node.n_s = 4
 
         K, M = gallery.fem_laplacian_2D_rectangle(n1, a, n2, b)
 
         lambda_c = 2 * NP.pi**2
-        n_s_min = 2
-        n_s = 4
 
-        d, S, _, _ = \
-            solver.compute_search_space(node, K, M, lambda_c, n_s_min, n_s)
+        d, S, _, _ = solver.compute_search_space(lambda_c, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], K.shape[0] )
-        self.assertTrue( S.shape[1] >= n_s )
-        self.assertTrue( S.shape[1] <= 2*n_s )
+        self.assertTrue( S.shape[1] >= node.n_s )
+        self.assertTrue( S.shape[1] <= 2*node.n_s )
 
         Q = linalg.orthogonalize(S)
         A = Q.H * K * Q
