@@ -179,7 +179,7 @@ def compute_search_space(lambda_c, node, K, M):
 
     del d1; del d2
     del X1; del X2
-    assert d.size == 2*n_s
+    assert d.size >= n_s
 
     LL = linalg.spll(K)
 
