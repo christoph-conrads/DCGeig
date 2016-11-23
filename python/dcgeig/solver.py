@@ -201,7 +201,9 @@ def compute_search_space(lambda_c, eta_max, delta_max, node, K, M):
         assert n_s <= K.shape[0]/2
 
         n_c = NP.sum(d <= lambda_c)
-        m = 2 * max(n_s, n_c)
+        assert n_s >= n_c
+
+        m = 2 * n_s
         return d[:m], X[:,:m], NP.empty(0), NP.empty(0)
 
 
