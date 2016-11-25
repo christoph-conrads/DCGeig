@@ -56,7 +56,7 @@ class Test_estimate_eigenvalue_count(unittest.TestCase):
 
 class Test_estimate_search_space_sizes(unittest.TestCase):
     def test_simple(self):
-        n = 3
+        n = 5
         K = SS.spdiags(1.0 * NP.arange(1,n+1), 0, n, n, format='csc')
         M = SS.identity(n)
 

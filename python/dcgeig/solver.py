@@ -15,6 +15,7 @@ import numpy.random
 
 import scipy.linalg as SL
 import scipy.sparse as SS
+import scipy.sparse.linalg as LA
 
 import dcgeig.binary_tree as binary_tree
 import dcgeig.error_analysis as error_analysis
@@ -88,9 +89,13 @@ def estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
 
 
     if n_s <= n_s_min or node.is_leaf_node():
-        d, X = linalg.rayleigh_ritz(K, M)
+        n = node.n
+        k = 2 * n_s
+        v0 = NP.ones([n,1])
+        d = LA.eigsh(K, M=M, k=k, sigma=0, v0=v0, return_eigenvectors=False)
 
         n_c = NP.sum(d <= lambda_c)
+        assert n_c < k
 
         new_node = copy.copy(node)
         new_node.n_c = max(n_c, 1)
@@ -197,14 +202,15 @@ def compute_search_space(lambda_c, eta_max, delta_max, node, K, M):
 
 
     if node.is_leaf_node():
-        d, X = linalg.rayleigh_ritz(K, M)
-        assert n_s <= K.shape[0]/2
+        n = node.n
+        k = 2 * n_s
+        v0 = NP.ones([n,1])
+        d, X = LA.eigsh(K, M=M, k=k, sigma=0, v0=v0)
 
         n_c = NP.sum(d <= lambda_c)
         assert n_s >= n_c
 
-        m = 2 * n_s
-        return d[:m], X[:,:m], NP.empty(0), NP.empty(0)
+        return d, X, NP.empty(0), NP.empty(0)
 
 
     K11, K22, _ = sparse_tools.get_submatrices_bisection(node, K)
