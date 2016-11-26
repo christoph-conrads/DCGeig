@@ -375,7 +375,7 @@ def execute(options, A, B, lambda_c):
         t0 = time.time()
         c0 = time.clock()
         d, X, eta, delta = subspace_iteration.execute( \
-                K, M, S, lambda_c/s, eta_max, delta_max)
+                K, M, d, S, lambda_c/s, eta_max, delta_max)
         c1 = time.clock()
         t1 = time.time()
 

@@ -118,12 +118,15 @@ def minmax_chebyshev( \
 
 
 def execute( \
-        K, M, X, lambda_c, eta_max, delta_max, max_num_iterations=10):
+        K, M, d, X, lambda_c, eta_max, delta_max, max_num_iterations=10):
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
+    assert isinstance(d, NP.ndarray)
+    assert NP.all(d > 0)
     assert isinstance(X, NP.ndarray)
     assert X.shape[0] == K.shape[0]
     assert X.shape[1] > 0
+    assert X.shape[1] == d.size
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
     assert isinstance(eta_max, numbers.Real)
@@ -137,7 +140,7 @@ def execute( \
     LL = linalg.spll(K)
 
     for i in range(1, max_num_iterations+1):
-        minmax_chebyshev(LL.solve, K, M, X, 2*lambda_c, 2, overwrite_b=True)
+        minmax_chebyshev(LL.solve, K, M, X, max(d), 2, overwrite_b=True)
 
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
