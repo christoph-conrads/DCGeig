@@ -170,7 +170,7 @@ class Test_compute_search_space(unittest.TestCase):
         node = binary_tree.make_internal_node(left, right, m)
         node.n_s = 4
 
-        K, M = gallery.fem_laplacian_2D_rectangle(n1, a, n2, b)
+        K, M = gallery.fem_laplacian([n1,n2], [a,b])
 
         lambda_c = 2 * NP.pi**2
         eta_max = NP.finfo(NP.float32).eps
@@ -302,7 +302,7 @@ class Test_execute(unittest.TestCase):
         a = 1.0
         n2 = 15
         b = 1.5
-        K, M = gallery.fem_laplacian_2D_rectangle(n1, a, n2, b)
+        K, M = gallery.fem_laplacian([n1,n2], [a,b])
 
         options = dcgeig.options.Options()
         options.n_direct = 50

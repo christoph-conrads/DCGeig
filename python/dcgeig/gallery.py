@@ -9,37 +9,119 @@
 import numbers
 
 import numpy as NP
+import numpy.matlib as ML
 
+import scipy.linalg as SL
 import scipy.sparse as SS
 
 
 
-def fdm_laplacian_1D(n, l=1.0, format='csc'):
+def fdm_laplacian_1D(n, l=1.0, dtype=NP.float64, format='csc'):
     assert isinstance(n, int)
     assert n > 0
     assert isinstance(l, numbers.Real)
     assert l > 0
 
-    h = l / (n+1)
+    h = 1.0 * l / (n+1)
+
+    if n < 3:
+        T = SS.kron(1, [[2, -1],[-1, 2]], format=format)
+        A = T[:n,:][:,:n]
+        return (A/h**2).astype(dtype)
 
     xs = NP.ones(n)
-    A = SS.diags( [-xs, 2*xs, -xs], [-1,0,+1], [n,n], format=format )
+    A = SS.diags([-xs, 2*xs, -xs], [-1,0,+1], [n,n], format=format)
 
-    return A/h**2
+    return (A/h**2).astype(dtype)
 
 
+def fdm_laplacian_2D(n, dtype=NP.float64, format='csc'):
+    return fdm_laplacian([n,n], [1.0,1.0], dtype=dtype, format=format)
 
-def fdm_laplacian_2D(n, format='csc'):
-    A = fdm_laplacian_1D(n, format=format)
-    I = SS.identity(n)
 
-    K = SS.kron(I, A, format=format) + SS.kron(A, I, format=format)
+def fdm_laplacian(ns, ls, dtype=NP.float64, format='csc'):
+    assert len(ns) == len(ls)
+    assert len(ns) > 0
+    assert isinstance(ns[-1], int)
+    assert ns[-1] > 0
+    assert isinstance(ls[-1], numbers.Real)
+    assert ls[-1] > 0
+    assert isinstance(format, str)
+
+    n = ns[-1]
+    l = ls[-1]
+    d = len(ns)
+
+    if d == 1:
+        return fdm_laplacian_1D(n, l, dtype, format)
+
+    A0 = fdm_laplacian_1D(n, l, dtype, format)
+    Ad = fdm_laplacian(ns[:-1], ls[:-1], dtype, format)
+
+    K = SS.kronsum(Ad, A0, format=format)
+
+    assert K.dtype == dtype
 
     return K
 
 
 
-def fem_laplacian_1D(n, l=1.0, format='csc'):
+def fdm_laplacian_1D_eigenpairs(n, l=1.0, dtype=NP.float64):
+    assert isinstance(n, int)
+    assert n > 0
+    assert isinstance(l, numbers.Real)
+    assert l > 0
+
+    h = 1.0 * l / (n+1)
+
+    i = NP.reshape(NP.arange(1,n+1), [n,1])
+    j = NP.reshape(NP.arange(1,n+1), [1,n])
+
+    X = NP.sin( NP.pi * i * j / (n+1) )
+    d = 1 - NP.cos( NP.pi * NP.arange(1,n+1) / (n+1) )
+
+    return (2/h**2 * d).astype(dtype), ML.matrix(X, dtype=dtype)
+
+
+def fdm_laplacian_eigenpairs_impl(ns, ls, dtype):
+    assert len(ns) == len(ls)
+    assert len(ns) > 0
+    assert isinstance(ns[-1], int)
+    assert ns[-1] > 0
+    assert isinstance(ls[-1], numbers.Real)
+    assert ls[-1] > 0
+
+    n = ns[-1]
+    l = ls[-1]
+    dim = len(ns)
+
+    if dim == 1:
+        return fdm_laplacian_1D_eigenpairs(n, l, dtype)
+
+    d, U = fdm_laplacian_eigenpairs_impl(ns[:-1], ls[:-1], dtype)
+    e, V = fdm_laplacian_1D_eigenpairs(n, l, dtype)
+
+    m = d.size
+    f = NP.reshape(e.reshape([n,1]) + d.reshape([1,m]), m*n)
+    W = SL.kron(V, U)
+
+    return f, W
+
+
+def fdm_laplacian_eigenpairs(ns, ls, dtype=NP.float64):
+    d, U = fdm_laplacian_eigenpairs_impl(ns, ls, dtype)
+    U = U / SL.norm(U, axis=0)
+
+    assert d.dtype == dtype
+    assert U.dtype == dtype
+
+    i = NP.argsort(d)
+
+    return d[i], ML.matrix(U[:,i])
+
+
+
+def fem_laplacian_1D(n, l=1.0, dtype=NP.float64, format='csc'):
     assert isinstance(n, int)
     assert n > 0
     assert isinstance(l, numbers.Real)
@@ -47,32 +129,109 @@ def fem_laplacian_1D(n, l=1.0, format='csc'):
 
     h = l / (n+1)
 
+    if n < 3:
+        A = SS.kron(1, [[2, -1],[-1, 2]], format=format)
+        K = A[:n,:][:,:n]
+
+        B = SS.kron(1, [[4, 1], [1, 4]], format=format)
+        M = B[:n,:][:,:n]
+
+        return (K/h).astype(dtype), (h/6*M).astype(dtype)
+
+
     xs = NP.ones(n)
     A = SS.diags( [-xs, 2*xs, -xs], [-1,0,+1], [n,n], format=format )
     B = SS.diags( [+xs, 4*xs, +xs], [-1,0,+1], [n,n], format=format )
 
-    return A/h, h/6 * B
+    return (A/h).astype(dtype), (h/6*B).astype(dtype)
+
+
+def fem_laplacian_2D(n, dtype=NP.float64, format='csc'):
+    return fem_laplacian([n,n], [1.0,1.0], dtype=dtype, format=format)
+
+
+def fem_laplacian(ns, ls, dtype=NP.float64, format='csc'):
+    assert len(ns) == len(ls)
+    assert isinstance(ns[-1], int)
+    assert ns[-1] > 0
+    assert isinstance(ls[-1], numbers.Real)
+    assert ls[-1] > 0
+
+    n = ns[-1]
+    l = ls[-1]
+    dim = len(ns)
+
+    K0, M0 = fem_laplacian_1D(n, l, dtype, format)
+
+    if dim == 1:
+        return K0, M0
+
+    Kd, Md = fem_laplacian(ns[:-1], ls[:-1], dtype, format)
+
+    K = SS.kron(M0, Kd, format=format) + SS.kron(K0, Md, format=format)
+    M = SS.kron(M0, Md, format=format)
+
+    assert K.dtype == dtype
+    assert K.getformat() == format
+    assert M.dtype == dtype
+    assert M.getformat() == format
+
+    return K, M
 
 
 
-def fem_laplacian_2D(n, format='csc'):
+def fem_laplacian_1D_eigenpairs(n, l=1.0, dtype=NP.float64):
     assert isinstance(n, int)
     assert n > 0
+    assert isinstance(l, numbers.Real)
+    assert l > 0
 
-    A, B = fem_laplacian_1D(n, format=format)
+    h = 1.0 * l / (n+1)
 
-    K = SS.kron(A, B, format=format) + SS.kron(B, A, format=format)
-    M = SS.kron(B, B, format=format)
+    i = NP.reshape(NP.arange(1,n+1), [n,1])
+    j = NP.reshape(NP.arange(1,n+1), [1,n])
 
-    return K, M
+    X = NP.sin( NP.pi * i * j / (n+1) )
+
+    nominator = 1 - NP.cos( NP.pi * NP.arange(1,n+1) / (n+1) )
+    denominator = 2 + NP.cos( NP.pi * NP.arange(1,n+1) / (n+1) )
+    d = 6/h**2 * nominator / denominator
+
+    return d.astype(dtype), ML.matrix(X, dtype=dtype)
 
 
+def fem_laplacian_eigenpairs_impl(ns, ls, dtype):
+    assert len(ns) == len(ls)
+    assert len(ns) > 0
+    assert isinstance(ns[-1], int)
+    assert ns[-1] > 0
+    assert isinstance(ls[-1], numbers.Real)
+    assert ls[-1] > 0
 
-def fem_laplacian_2D_rectangle(n1, l1, n2, l2, format='csc'):
-    A1, B1 = fem_laplacian_1D(n1, l1, format=format)
-    A2, B2 = fem_laplacian_1D(n2, l2, format=format)
+    n = ns[-1]
+    l = ls[-1]
+    dim = len(ns)
 
-    K = SS.kron(A1, B2, format=format) + SS.kron(B1, A2, format=format)
-    M = SS.kron(B1, B2, format=format)
+    if dim == 1:
+        return fem_laplacian_1D_eigenpairs(n, l, dtype)
 
-    return K, M
+    d, U = fem_laplacian_eigenpairs_impl(ns[:-1], ls[:-1], dtype)
+    e, V = fem_laplacian_1D_eigenpairs(n, l, dtype)
+
+    m = d.size
+    f = NP.reshape(e.reshape([n,1]) + d.reshape([1,m]), m*n)
+    W = SL.kron(V, U)
+
+    return f, W
+
+
+def fem_laplacian_eigenpairs(ns, ls, dtype=NP.float64):
+    d, U = fem_laplacian_eigenpairs_impl(ns, ls, dtype)
+    U = U / SL.norm(U, axis=0)
+
+    assert d.dtype == dtype
+    assert U.dtype == dtype
+
+    i = NP.argsort(d)
+
+    return d[i], ML.matrix(U[:,i])
