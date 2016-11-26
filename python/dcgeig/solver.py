@@ -183,16 +183,12 @@ def compute_search_space_sizes(n_s_min, d, b, lambda_c, node, K, M, n_s):
 
 
 
-def compute_search_space(lambda_c, eta_max, delta_max, node, K, M):
+def compute_search_space(tol, lambda_c, node, K, M):
+    assert isinstance(tol, numbers.Real)
+    assert tol > 0
+    assert tol < 1
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
-    assert isinstance(eta_max, numbers.Real)
-    assert eta_max > 0
-    assert eta_max < 1
-    assert isinstance(delta_max, numbers.Real)
-    assert delta_max > 0
-    assert delta_max <= 1
-    assert delta_max >= eta_max
     assert isinstance(node, binary_tree.Node)
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
@@ -211,9 +207,7 @@ def compute_search_space(lambda_c, eta_max, delta_max, node, K, M):
         e, X = LA.eigsh(M, M=K, k=k, v0=v0)
         d = 1/e
 
-        i = NP.argsort(d)
-
-        return d[i], X[:,i], NP.empty(0), NP.empty(0)
+        return d, linalg.orthogonalize(X)
 
 
     K11, K22, _ = sparse_tools.get_submatrices_bisection(node, K)
@@ -222,50 +216,49 @@ def compute_search_space(lambda_c, eta_max, delta_max, node, K, M):
     left = node.left_child
     right = node.right_child
 
-    d1, X1, _, _ = \
-        compute_search_space(lambda_c, eta_max, delta_max, left, K11, M11)
-    d2, X2, _, _ = \
-        compute_search_space(lambda_c, eta_max, delta_max, right, K22, M22)
+    d1, S1 = compute_search_space(tol, lambda_c, left, K11, M11)
+    d2, S2 = compute_search_space(tol, lambda_c, right, K22, M22)
 
     del K11; del M11
     del K22; del M22
 
     # combine search spaces
     d = NP.concatenate([d1, d2])
-    X = SL.block_diag(X1, X2)
-    X = ML.matrix(X)
+    S = SL.block_diag(S1, S2)
+    S = ML.matrix(S)
 
     del d1; del d2
-    del X1; del X2
+    del S1; del S2
     assert d.size >= n_s
 
     LL = linalg.spll(K)
-
-    n_c = NP.sum(d <= lambda_c)
+    d_old = NP.copy(d)
 
     for k in range(10):
         subspace_iteration.minmax_chebyshev( \
-                LL.solve, K, M, X, max(d), 2, overwrite_b=True)
+                LL.solve, K, M, S, max(d), 2, overwrite_b=True)
 
-        d, X = linalg.rayleigh_ritz(K, M, X)
-        eta, delta = error_analysis.compute_errors(K, M, d, X)
-
-        t = d <= lambda_c
-        t[0] = True
+        S = linalg.orthogonalize(S)
+        d = SL.eigvalsh(S.H*K*S, S.H*M*S)
 
         n_c = NP.sum(d <= lambda_c)
 
-        fmt = 'CSS {:d}  {:6d} {:4d} {:4d}  {:8.2e} {:8.2e} {:8.2e}  {:8.2e} {:8.2e}'
+        nominator = NP.abs(d - d_old)
+        denominator = NP.minimum(d_old, d)
+        reldiff = nominator/denominator
+
+        fmt = 'CSS {:d}  {:6d} {:4d} {:4d} {:4d}  {:8.2e}  {:8.2e} {:8.2e}'
         n = K.shape[0]
         print fmt.format( \
-                k, n, d.size, n_c,
-                NP.median(eta), NP.max(eta), NP.max(eta[t]),
+                k, n, d.size, n_s, n_c, max(reldiff[:n_s]),
                 NP.min(d) / lambda_c, NP.max(d) / lambda_c)
 
-        if max(eta[t]) < eta_max and max(delta[t]/d[t]) < delta_max:
+        if max(reldiff[:n_s]) <= tol:
             break
 
-    return d, X, eta, delta
+        d_old = d
+
+    return d, S
 
 
 
@@ -366,8 +359,8 @@ def execute(options, A, B, lambda_c):
         # compute search space
         t0 = time.time()
         c0 = time.clock()
-        d, X, eta, delta = \
-            compute_search_space(lambda_c/s, eta_max, delta_max, root, K, M)
+        tol = 0.1
+        d, S = compute_search_space(tol, lambda_c/s, root, K, M)
         c1 = time.clock()
         t1 = time.time()
 
@@ -378,18 +371,11 @@ def execute(options, A, B, lambda_c):
         del c0; del c1
 
 
-        # test for early return
-        n_c = NP.sum(d <= lambda_c/s)
-
-        if max(eta[:n_c]) <= eta_max and max(delta[:n_c]/d[:n_c]) <= delta_max:
-            return s*d[:n_c], D*X[iperm,:n_c], eta[:n_c], s*delta[:n_c]
-
-
         # use subspace iterations for solutions
         t0 = time.time()
         c0 = time.clock()
         d, X, eta, delta = subspace_iteration.execute( \
-                K, M, X, lambda_c/s, eta_max, delta_max)
+                K, M, S, lambda_c/s, eta_max, delta_max)
         c1 = time.clock()
         t1 = time.time()
 

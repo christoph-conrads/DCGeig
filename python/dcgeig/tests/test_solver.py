@@ -11,6 +11,7 @@ import unittest
 import numbers
 
 import numpy as NP
+import numpy.matlib as ML
 
 import scipy.linalg as SL
 import scipy.sparse as SS
@@ -112,23 +113,19 @@ class Test_compute_search_space(unittest.TestCase):
         M = SS.identity(n, dtype=K.dtype, format='csc')
         lambda_c = 0.5
 
-        eta_max = NP.finfo(NP.float32).eps
-        delta_max = 1.0
-
-        d, S, eta, delta = \
-            solver.compute_search_space(lambda_c, eta_max, delta_max, node, K, M)
+        d, S = solver.compute_search_space(0.1, lambda_c, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
+        self.assertIsInstance( S, ML.matrix )
         self.assertEqual( S.shape[0], n )
         self.assertTrue( S.shape[1] >= node.n_s )
-        self.assertTrue( eta.size <= d.size )
-        self.assertTrue( delta.size == eta.size )
 
+        m = S.shape[1]
         eps = NP.finfo(K.dtype).eps
+        e1 = NP.eye(n, 1)
         self.assertTrue( abs(min(d) - 1) <= eps)
-        self.assertTrue( abs(S[0,0]) >= 1-eps )
-        self.assertTrue( abs(S[0,0]) <= 1+eps )
-        self.assertTrue( abs(S[1,0]) <= eps )
+        self.assertTrue( SL.norm(S.H * S - ML.eye(m)) <= m*eps )
+        self.assertTrue( SL.norm(NP.dot(e1.T, S)) > 1-eps )
 
 
     def test_recursion(self):
@@ -144,21 +141,22 @@ class Test_compute_search_space(unittest.TestCase):
         K = SS.spdiags(1.0 * NP.arange(1, n+1), 0, n, n, format='csc')
         M = SS.identity(n, dtype=K.dtype, format='csc')
 
+        tol = 0.1
         lambda_c = 1.0
-        eta_max = NP.finfo(NP.float32).eps
-        delta_max = 1.0
 
-        d, S, _, _ = \
-            solver.compute_search_space(lambda_c, eta_max, delta_max, node, K, M)
+        d, S = solver.compute_search_space(tol, lambda_c, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], n )
         self.assertTrue( S.shape[1] >= node.n_s )
         self.assertTrue( S.shape[1] <= 2*node.n_s )
 
-        Q = linalg.orthogonalize(S)
+        m = S.shape[1]
+        eps = NP.finfo(S.dtype).eps
+        self.assertTrue( SL.norm(S.H * S - ML.eye(m)) <= m*eps )
 
-        self.assertTrue( abs(Q[0,0]) > 0.99 )
+        e1 = ML.eye(n, 1)
+        self.assertTrue( SL.norm(e1.H * S) > 0.99 )
 
 
 
@@ -178,21 +176,22 @@ class Test_compute_search_space(unittest.TestCase):
 
         K, M = gallery.fem_laplacian([n1,n2], [a,b])
 
+        tol = 0.1
         lambda_c = 2 * NP.pi**2
-        eta_max = NP.finfo(NP.float32).eps
-        delta_max = 1.0
 
-        d, S, _, _ = \
-            solver.compute_search_space(lambda_c, eta_max, delta_max, node, K, M)
+        d, S = solver.compute_search_space(tol, lambda_c, node, K, M)
 
         self.assertIsInstance( d, NP.ndarray )
         self.assertEqual( S.shape[0], K.shape[0] )
         self.assertTrue( S.shape[1] >= node.n_s )
         self.assertTrue( S.shape[1] <= 2*node.n_s )
 
-        Q = linalg.orthogonalize(S)
-        A = Q.H * K * Q
-        B = Q.H * M * Q
+        m = S.shape[1]
+        eps = NP.finfo(S.dtype).eps
+        self.assertTrue( SL.norm(S.H * S - ML.eye(m)) <= m*eps )
+
+        A = S.H * K * S
+        B = S.H * M * S
 
         d_min = min( SL.eigvalsh(A, B, eigvals=(0,0)) )
         r = d_min / NP.pi**2
