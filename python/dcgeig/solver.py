@@ -76,9 +76,13 @@ def estimate_eigenvalue_count(K, M, lambda_1, lambda_c, d, b):
 
 
 # /size/ of a search space = dimension of the search space
-def estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
+def estimate_search_space_sizes(n_s_min, d, b, lambda_c, node, K, M, n_s):
     assert isinstance(n_s_min, int)
     assert n_s_min >= 0
+    assert isinstance(d, int)
+    assert d > 0
+    assert isinstance(b, int)
+    assert b > 0
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
     assert isinstance(node, binary_tree.Node)
@@ -89,19 +93,12 @@ def estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
 
 
     if n_s <= n_s_min or node.is_leaf_node():
-        n = node.n
-        k = 2 * n_s
-        v0 = NP.ones([n,1])
-        d = LA.eigsh(K, M=M, k=k, sigma=0, v0=v0, return_eigenvectors=False)
-
-        n_c = NP.sum(d <= lambda_c)
-        assert n_c < k
+        mean, std = estimate_eigenvalue_count( \
+            K+lambda_c*M, M, lambda_c, 2*lambda_c, d, b)
 
         new_node = copy.copy(node)
-        new_node.n_c = max(n_c, 1)
-        new_node.n_s = n_s
-        new_node.left_child = None
-        new_node.right_child = None
+        new_node.n_s_mean = mean
+        new_node.n_s_std = std
 
         return new_node
 
@@ -116,13 +113,12 @@ def estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
     n_sr = n_s - n_sl
 
     new_left = estimate_search_space_sizes( \
-            n_s_min, lambda_c, left, K11, M11, n_sl)
+            n_s_min, d, b, lambda_c, left, K11, M11, n_sl)
     new_right = estimate_search_space_sizes( \
-            n_s_min, lambda_c, right, K22, M22, n_sr)
+            n_s_min, d, b, lambda_c, right, K22, M22, n_sr)
 
     new_node = copy.copy(node)
-    new_node.n_c = new_left.n_c + new_right.n_c
-    new_node.n_s = n_s
+    new_node.n_s_mean = new_left.n_s_mean + new_right.n_s_mean
     new_node.left_child = new_left
     new_node.right_child = new_right
 
@@ -130,16 +126,16 @@ def estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
 
 
 
-def fix_search_space_sizes(n_s_min, c, node):
+def fix_search_space_sizes(n_s_min, c, node, n_s0):
     assert isinstance(n_s_min, int)
     assert n_s_min >= 0
     assert isinstance(c, numbers.Real)
-    assert c > 0
+    assert c >= 1.0
     assert NP.isfinite(c)
     assert isinstance(node, binary_tree.Node)
 
-    n_s = int( NP.ceil(c * node.n_c) )
     new = copy.copy(node)
+    n_s = int(NP.ceil(c*node.n_s_mean)) if hasattr(node, 'n_s_mean') else n_s0
 
     if n_s <= n_s_min or node.is_leaf_node():
         new.left_child = None
@@ -148,20 +144,30 @@ def fix_search_space_sizes(n_s_min, c, node):
 
         return new
 
+    left = node.left_child
+    right = node.right_child
 
-    new.left_child = fix_search_space_sizes(n_s_min, c, node.left_child)
-    new.right_child = fix_search_space_sizes(n_s_min, c, node.right_child)
+    n_sl = n_s/2 if left.n <= right.n else n_s-n_s/2
+    n_sr = n_s - n_sl
+
+    new.left_child = fix_search_space_sizes(n_s_min, c, left, n_sl)
+    new.right_child = fix_search_space_sizes(n_s_min, c, right, n_sr)
     new.n_s = new.left_child.n_s + new.right_child.n_s
 
-    assert new.n_s >= new.n_c
+    if not hasattr(node, 'n_s_mean'):
+        assert new.n_s == new.left_child.n_s + new.right_child.n_s
 
     return new
 
 
 
-def compute_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
+def compute_search_space_sizes(n_s_min, d, b, lambda_c, node, K, M, n_s):
     assert isinstance(n_s_min, int)
     assert n_s_min >= 0
+    assert isinstance(d, int)
+    assert d > 0
+    assert isinstance(b, int)
+    assert b > 0
     assert isinstance(lambda_c, numbers.Real)
     assert lambda_c > 0
     assert isinstance(node, binary_tree.Node)
@@ -170,15 +176,10 @@ def compute_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s):
     assert isinstance(n_s, int)
     assert n_s > 0
 
-    node1 = estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s)
+    node1 = estimate_search_space_sizes(n_s_min, d, b, lambda_c, node, K, M, n_s)
 
-    if node1.n_c > 0:
-        c = 1.0 * n_s / node1.n_c
-        assert c >= 1
-
-        return fix_search_space_sizes(n_s_min, c, node1)
-
-    return node1
+    c = n_s / node1.n_s_mean if node1.n_s_mean <= n_s else 1.0
+    return fix_search_space_sizes(n_s_min, c, node1, n_s)
 
 
 
@@ -203,14 +204,16 @@ def compute_search_space(lambda_c, eta_max, delta_max, node, K, M):
 
     if node.is_leaf_node():
         n = node.n
+
         k = 2 * n_s
         v0 = NP.ones([n,1])
-        d, X = LA.eigsh(K, M=M, k=k, sigma=0, v0=v0)
+        # M may be rank deficient so consider the matrix pencil (M, K) instead
+        e, X = LA.eigsh(M, M=K, k=k, v0=v0)
+        d = 1/e
 
-        n_c = NP.sum(d <= lambda_c)
-        assert n_s >= n_c
+        i = NP.argsort(d)
 
-        return d, X, NP.empty(0), NP.empty(0)
+        return d[i], X[:,i], NP.empty(0), NP.empty(0)
 
 
     K11, K22, _ = sparse_tools.get_submatrices_bisection(node, K)
@@ -347,7 +350,8 @@ def execute(options, A, B, lambda_c):
 
         n_s = int( NP.ceil(mean + std) )
 
-        root = compute_search_space_sizes(n_s_min, lambda_c/s, root, K, M, n_s)
+        root = compute_search_space_sizes(\
+                n_s_min, poly_degree, n_trial, lambda_c/s, root, K, M, n_s)
 
         c1 = time.clock()
         t1 = time.time()

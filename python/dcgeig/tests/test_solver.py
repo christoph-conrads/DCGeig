@@ -8,6 +8,8 @@
 
 import unittest
 
+import numbers
+
 import numpy as NP
 
 import scipy.linalg as SL
@@ -63,9 +65,11 @@ class Test_estimate_search_space_sizes(unittest.TestCase):
         n_s = 2
 
         node = binary_tree.make_leaf_node(n)
-        new_node = solver.estimate_search_space_sizes(30, 2.0, node, K, M, n_s)
+        new_node = \
+            solver.estimate_search_space_sizes(30, 20, 4, 2.5, node, K, M, n_s)
 
-        self.assertEqual( new_node.n_c, n_s )
+        self.assertTrue( abs(new_node.n_s_mean - n_s) <= 0.1 )
+        self.assertTrue( new_node.n_s_std < 0.01 )
 
 
 
@@ -75,23 +79,25 @@ class Test_estimate_search_space_sizes(unittest.TestCase):
         lambda_c = 2/h**2 * (1 - NP.cos(3*NP.pi/(n+1)))
 
         M = SS.identity(n**2, format='csc')
-        K = gallery.fdm_laplacian_2D(n)
+        K = gallery.fdm_laplacian([n,n], [1.0,1.0])
+        d, X = gallery.fdm_laplacian_eigenpairs([n,n], [1.0,1.0])
 
         left = binary_tree.make_leaf_node(n**2/2)
         right = binary_tree.make_leaf_node(n**2/2)
         node = binary_tree.make_internal_node(left, right, n**2)
 
-        new_node = solver.estimate_search_space_sizes(2, lambda_c, node, K, M, 4)
+        new_node = solver.estimate_search_space_sizes( \
+                2, 20, 10, lambda_c, node, K, M, 4)
 
         self.assertIsInstance(new_node, binary_tree.Node)
-        self.assertIsInstance(new_node.n_c, int)
-        self.assertTrue(new_node.n_c == 4)
+        self.assertIsInstance(new_node.n_s_mean, numbers.Real)
+        self.assertEqual( NP.round(new_node.n_s_mean), 4)
 
-        self.assertIsInstance(new_node.left_child.n_c, int)
-        self.assertEqual(new_node.left_child.n_c, 2 )
+        self.assertIsInstance(new_node.left_child.n_s_mean, numbers.Real)
+        self.assertEqual( NP.round(new_node.left_child.n_s_mean), 2 )
 
-        self.assertIsInstance(new_node.right_child.n_c, int)
-        self.assertEqual(new_node.right_child.n_c, 2 )
+        self.assertIsInstance(new_node.right_child.n_s_mean, numbers.Real)
+        self.assertEqual( NP.round(new_node.right_child.n_s_mean), 2 )
 
 
 

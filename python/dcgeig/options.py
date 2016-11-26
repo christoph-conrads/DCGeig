@@ -18,7 +18,7 @@ def nop(_):
 class Options(object):
     def __init__(self):
         self.n_direct = 1000
-        self.n_s_min = 30
+        self.n_s_min = 50
 
         self.num_trial_vectors = 50
         self.polynomial_degree = 50
