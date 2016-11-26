@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/dcgeig", line 252, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/dcgeig", line 228, in main
+    rs, labels = solver.execute(options, A, B, lambda_c)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 395, in execute
+    rs = map( call_solve_gep, range(l) )
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 344, in call_solve_gep
+    root = compute_search_space_sizes(n_s_min, lambda_c/s, root, K, M, n_s)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 168, in compute_search_space_sizes
+    node1 = estimate_search_space_sizes(n_s_min, lambda_c, node, K, M, n_s)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 114, in estimate_search_space_sizes
+    n_s_min, lambda_c, left, K11, M11, n_sl)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 91, in estimate_search_space_sizes
+    d, X = linalg.rayleigh_ritz(K, M)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/linalg.py", line 59, in rayleigh_ritz
+    A = K.todense()
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/sparse/base.py", line 631, in todense
+    return np.asmatrix(self.toarray(order=order, out=out))
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/sparse/compressed.py", line 940, in toarray
+    return self.tocoo(copy=False).toarray(order=order, out=out)
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/sparse/coo.py", line 250, in toarray
+    B = self._process_toarray_args(order, out)
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/sparse/base.py", line 817, in _process_toarray_args
+    return np.zeros(self.shape, dtype=self.dtype, order=order)
+MemoryError
