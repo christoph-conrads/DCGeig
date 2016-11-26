@@ -41,7 +41,7 @@ def spll(A):
 
 
 def orthogonalize(V):
-    assert isinstance(V, ML.matrix)
+    assert isinstance(V, NP.ndarray)
     assert V.shape[0] >= V.shape[1]
 
     Q, _ = NL.qr(V)
