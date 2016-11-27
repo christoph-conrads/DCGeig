@@ -234,7 +234,7 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
     assert d.size >= n_s
 
     LL = linalg.spll(K)
-    d_old = NP.copy(d)
+    d_old = d
 
     for k in range(10):
         subspace_iteration.minmax_chebyshev( \
