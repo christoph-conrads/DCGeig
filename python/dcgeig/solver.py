@@ -183,7 +183,7 @@ def compute_search_space_sizes(n_s_min, d, b, lambda_c, node, K, M, n_s):
 
 
 
-def compute_search_space(tol, lambda_c, node, K, M):
+def compute_search_space(tol, lambda_c, node, K, M, level=0):
     assert isinstance(tol, numbers.Real)
     assert tol > 0
     assert tol < 1
@@ -192,6 +192,8 @@ def compute_search_space(tol, lambda_c, node, K, M):
     assert isinstance(node, binary_tree.Node)
     assert SS.isspmatrix(K)
     assert SS.isspmatrix(M)
+    assert isinstance(level, int)
+    assert level >= 0
 
     n_s = node.n_s
     assert isinstance(n_s, int)
@@ -216,8 +218,8 @@ def compute_search_space(tol, lambda_c, node, K, M):
     left = node.left_child
     right = node.right_child
 
-    d1, S1 = compute_search_space(tol, lambda_c, left, K11, M11)
-    d2, S2 = compute_search_space(tol, lambda_c, right, K22, M22)
+    d1, S1 = compute_search_space(tol, lambda_c, left, K11, M11, level+1)
+    d2, S2 = compute_search_space(tol, lambda_c, right, K22, M22, level+1)
 
     del K11; del M11
     del K22; del M22
@@ -258,7 +260,11 @@ def compute_search_space(tol, lambda_c, node, K, M):
 
         d_old = d
 
-    return d, S
+    lambda_s = 10 * lambda_c if level == 0 else 10 * level * lambda_c
+    n_t = NP.sum(d <= lambda_s)
+    r = max(n_s, n_t)
+
+    return d[:r], S[:,:r]
 
 
 
