@@ -373,8 +373,8 @@ def execute(options, A, B, lambda_c):
         c1 = time.clock()
         t1 = time.time()
 
-        fmt = 'Search space computed ({:.1f}s {:.1f}s)'
-        show( fmt.format(t1-t0, c1-c0) )
+        fmt = 'Search space with dimension {:d} computed ({:.1f}s {:.1f}s)'
+        show( fmt.format(d.size, t1-t0, c1-c0) )
 
         del t0; del t1
         del c0; del c1
