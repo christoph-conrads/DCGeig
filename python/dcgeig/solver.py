@@ -233,6 +233,9 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
     del S1; del S2
     assert d.size >= n_s
 
+    if level == 0:
+        return d, S
+
     LL = linalg.spll(K)
     d_old = d
 
