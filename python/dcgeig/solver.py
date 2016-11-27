@@ -260,7 +260,7 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
 
         d_old = d
 
-    lambda_s = 10 * lambda_c if level == 0 else 10 * level * lambda_c
+    lambda_s = 5.0 * (lambda_c if level == 0 else level * lambda_c)
     n_t = NP.sum(d <= lambda_s)
     r = max(n_s, n_t)
 
