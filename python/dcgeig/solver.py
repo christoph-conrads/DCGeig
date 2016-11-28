@@ -237,11 +237,12 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
     if level == 0:
         return d, S
 
-    LL = linalg.spll(K)
+    sigma = 1e-2 * lambda_c
+    LL = linalg.spll(K + sigma * M)
 
     for k in range(10):
-        subspace_iteration.minmax_chebyshev( \
-                LL.solve, K, M, S, max(d), 2, overwrite_b=True)
+        S = LL.solve(M * S)
+        S = LL.solve(M * S)
 
         S = linalg.orthogonalize(S)
         d_old = d
