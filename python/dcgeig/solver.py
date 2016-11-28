@@ -203,7 +203,7 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
     if node.is_leaf_node():
         n = node.n
 
-        k = 2 * n_s
+        k = int( NP.ceil(1.1*n_s) )
         v0 = NP.ones([n,1])
         # M may be rank deficient so consider the matrix pencil (M, K) instead
         e, X = LA.eigsh(M, M=K, k=k, v0=v0)
@@ -259,14 +259,11 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
                 k, n, d.size, n_s, n_c, max(reldiff[:n_s]),
                 NP.min(d) / lambda_c, NP.max(d) / lambda_c)
 
-        if max(reldiff[:n_s]) <= tol:
+        if NP.percentile(reldiff, 95) <= tol:
             break
 
-    lambda_s = 5.0 * (lambda_c if level == 0 else level * lambda_c)
-    n_t = NP.sum(d <= lambda_s)
-    r = max(n_s, n_t)
 
-    return d[:r], S[:,:r]
+    return d, S
 
 
 
@@ -367,7 +364,7 @@ def execute(options, A, B, lambda_c):
         # compute search space
         t0 = time.time()
         c0 = time.clock()
-        tol = 0.1
+        tol = 0.5
         d, S = compute_search_space(tol, lambda_c/s, root, K, M)
         c1 = time.clock()
         t1 = time.time()
