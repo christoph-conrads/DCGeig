@@ -226,6 +226,7 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
 
     # combine search spaces
     d = NP.concatenate([d1, d2])
+    d = NP.sort(d)
     S = SL.block_diag(S1, S2)
     S = ML.matrix(S)
 
@@ -237,13 +238,13 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
         return d, S
 
     LL = linalg.spll(K)
-    d_old = d
 
     for k in range(10):
         subspace_iteration.minmax_chebyshev( \
                 LL.solve, K, M, S, max(d), 2, overwrite_b=True)
 
         S = linalg.orthogonalize(S)
+        d_old = d
         d = SL.eigvalsh(S.H*K*S, S.H*M*S)
 
         n_c = NP.sum(d <= lambda_c)
@@ -260,8 +261,6 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
 
         if max(reldiff[:n_s]) <= tol:
             break
-
-        d_old = d
 
     lambda_s = 5.0 * (lambda_c if level == 0 else level * lambda_c)
     n_t = NP.sum(d <= lambda_s)
