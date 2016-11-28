@@ -247,17 +247,20 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
         d_old = d
         d = SL.eigvalsh(S.H*K*S, S.H*M*S)
 
-        n_c = NP.sum(d <= lambda_c)
-
         nominator = NP.abs(d - d_old)
         denominator = NP.minimum(d_old, d)
         reldiff = nominator/denominator
 
-        fmt = 'CSS {:d}  {:6d} {:4d} {:4d} {:4d}  {:8.2e}  {:8.2e} {:8.2e}'
+        fmt = \
+            'CSS ' \
+            '{:5d} {:4d} {:4d} {:4d}  ' \
+            '{:8.2e} {:8.2e} {:8.2e} {:8.2e} {:8.2e}'
         n = K.shape[0]
+        n_c = NP.sum(d <= lambda_c)
+        e = NP.sort(d/lambda_c)
         print fmt.format( \
-                k, n, d.size, n_s, n_c, max(reldiff[:n_s]),
-                NP.min(d) / lambda_c, NP.max(d) / lambda_c)
+            n, d.size, n_s, n_c,
+            e[0], NP.percentile(e, 25), NP.median(e), NP.percentile(e,75), e[-1])
 
         if NP.percentile(reldiff, 95) <= tol:
             break
