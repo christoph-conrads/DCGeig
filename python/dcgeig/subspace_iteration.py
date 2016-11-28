@@ -137,11 +137,14 @@ def execute( \
     assert isinstance(max_num_iterations, int)
     assert max_num_iterations > 0
 
+    print 'SI {:8.2e}'.format(max(d)/lambda_c)
+
     LL = linalg.spll(K)
 
     for i in range(1, max_num_iterations+1):
         minmax_chebyshev(LL.solve, K, M, X, max(d), 2, overwrite_b=True)
 
+        d_old = d
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
 
@@ -154,6 +157,38 @@ def execute( \
 
         if not NP.any(t):
             break
+
+
+        n = K.shape[0]
+        print 'SI {:d} {:2d}  {:4d}'.format(n, i, NP.sum(d <= lambda_c))
+        fmt = 'SI {:d} {:2d}  {:8.2e} {:8.2e} {:8.2e} {:8.2e} {:8.2e}'
+
+        be = NP.sort(eta)
+        print fmt.format( \
+            K.shape[0], i,
+            be[0], NP.percentile(be, 25), NP.median(be),
+            NP.percentile(be,75), be[-1])
+
+        fe = NP.sort(delta/d)
+        print fmt.format( \
+            K.shape[0], i,
+            fe[0], NP.percentile(fe, 25), NP.median(fe),
+            NP.percentile(fe,75), fe[-1])
+
+        nominator = NP.abs(d - d_old)
+        denominator = NP.minimum(d_old, d)
+        rd = NP.sort(nominator/denominator)
+
+        print fmt.format( \
+            K.shape[0], i,
+            rd[0], NP.percentile(rd, 25), NP.median(rd),
+            NP.percentile(rd,75), rd[-1])
+
+        e = NP.sort(d/lambda_c)
+        print fmt.format( \
+            K.shape[0], i,
+            e[0], NP.percentile(e,25), NP.median(e), NP.percentile(e,75), e[-1])
+
 
         if max(eta[t]) < eta_max and max(delta[t]/d[t]) < delta_max:
             break
