@@ -137,13 +137,13 @@ def execute( \
     assert isinstance(max_num_iterations, int)
     assert max_num_iterations > 0
 
-    print 'SI {:8.2e}'.format(max(d)/lambda_c)
+    print 'SI {:4d} {:8.2e}'.format(NP.sum(d <= lambda_c), max(d)/lambda_c)
 
     LL = linalg.spll(K)
+    X = LL.solve(M * X)
+    del LL
 
     for i in range(1, max_num_iterations+1):
-        minmax_chebyshev(LL.solve, K, M, X, max(d), 2, overwrite_b=True)
-
         d_old = d
         d, X = linalg.rayleigh_ritz(K, M, X)
         eta, delta = error_analysis.compute_errors(K, M, d, X)
@@ -192,6 +192,37 @@ def execute( \
 
         if max(eta[t]) < eta_max and max(delta[t]/d[t]) < delta_max:
             break
+
+
+        t1 = ((eta >= eta_max) | (delta >= d*delta_max)) & (d <= lambda_c)
+        t2 = d > lambda_c
+        t0 = ~(t1 | t2)
+
+        n_s = d.size
+        xs = NP.arange(n_s)
+        p = NP.concatenate( [xs[t0], xs[t1], xs[t2]] )
+
+        d = d[p]
+        X = X[:,p]
+        del eta
+        del delta
+
+        l = NP.sum(t0)
+        r = NP.sum(t0) + NP.sum(t1)
+        assert r + NP.sum(t2) == d.size
+        assert r == NP.sum(d <= lambda_c)
+
+        print 'SI {:4d} l={:d} r={:d}'.format(n_s, l, r)
+
+        LU = LA.splu(K - 0.9*lambda_c * M, options={'SymmetricMode': True})
+        X[:,r:] = LU.solve(M * X[:,r:])
+        X[:,r:] = LU.solve(M * X[:,r:])
+        del LU
+
+        LL = linalg.spll(K)
+        X[:,l:] = LL.solve(M * X[:,l:])
+        X[:,l:] = LL.solve(M * X[:,l:])
+
 
 
     assert not NP.any(NP.isinf(d))
