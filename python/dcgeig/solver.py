@@ -203,10 +203,13 @@ def compute_search_space(tol, lambda_c, node, K, M, level=0):
     if node.is_leaf_node():
         n = node.n
 
+        # ensure symmetric non-zero pattern
+        Kinv = linalg.spll(K)
+
         k = int( NP.ceil(1.1*n_s) )
         v0 = NP.ones([n,1])
         # M may be rank deficient so consider the matrix pencil (M, K) instead
-        e, X = LA.eigsh(M, M=K, k=k, v0=v0)
+        e, X = LA.eigsh(M, M=K, Minv=Kinv, k=k, v0=v0)
         d = 1/e
 
         return d, linalg.orthogonalize(X)
