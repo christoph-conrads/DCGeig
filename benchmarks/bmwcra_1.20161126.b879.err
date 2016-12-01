@@ -1,0 +1,21 @@
+Can't expand MemType 0: jcol 115883
+Traceback (most recent call last):
+  File "/tmp/install/bin/dcgeig", line 252, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/dcgeig", line 228, in main
+    rs, labels = solver.execute(options, A, B, lambda_c)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 391, in execute
+    rs = map( call_solve_gep, range(l) )
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 363, in call_solve_gep
+    d, S = compute_search_space(tol, lambda_c/s, root, K, M)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 207, in compute_search_space
+    e, X = LA.eigsh(M, M=K, k=k, v0=v0)
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/sparse/linalg/eigen/arpack/arpack.py", line 1529, in eigsh
+    Minv_matvec = get_inv_matvec(M, symmetric=True, tol=tol)
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/sparse/linalg/eigen/arpack/arpack.py", line 1015, in get_inv_matvec
+    return SpLuInv(M).matvec
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/sparse/linalg/eigen/arpack/arpack.py", line 899, in __init__
+    self.M_lu = splu(M)
+  File "/home/starfish/lib64/python2.7/site-packages/scipy/sparse/linalg/dsolve/linsolve.py", line 257, in splu
+    ilu=False, options=_options)
+SystemError: gstrf was called with invalid arguments

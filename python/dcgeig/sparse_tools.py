@@ -10,62 +10,17 @@ import numbers
 
 import numpy as NP
 import numpy.linalg
+import numpy.matlib as ML
+
+import scipy.linalg
 import scipy.sparse as SS
+import scipy.sparse.csgraph
 import scipy.sparse.linalg as LA
 
-import dcgeig.utils as utils
+import dcgeig
+import dcgeig.binary_tree as binary_tree
 import dcgeig.metis as metis
-
-import copy
-
-
-class Tree:
-    @staticmethod
-    def make_leaf_node(data):
-        return Tree(None, None, data)
-
-    @staticmethod
-    def make_internal_node(left_child, right_child, data):
-        return Tree(left_child, right_child, data)
-
-
-    def __init__(self, left_child, right_child, data):
-        if not isinstance(data, dict):
-            raise TypeError('data must be a dictionary')
-
-        # this test does not catch strings that are not identifiers like '1'
-        if filter(lambda k: not isinstance(k, str), data.keys()):
-            raise ValueError('data keys must be strings')
-
-        if 'left_child' in data or 'right_child' in data:
-            raise AttributeError('Illegal keys found')
-
-        self.left_child = left_child
-        self.right_child = right_child
-        self.__dict__.update(data)
-
-
-    def has_left_child(self):
-        return self.left_child is not None
-
-    def has_right_child(self):
-        return self.right_child is not None
-
-    def is_leaf_node(self):
-        return (not self.left_child) and (not self.right_child)
-
-
-    def get_height(self):
-        if Tree.is_leaf_node(self):
-            return 0
-
-        assert Tree.has_left_child(self)
-        assert Tree.has_right_child(self)
-
-        left = self.left_child
-        right = self.right_child
-
-        return max(Tree.get_height(left), Tree.get_height(right)) + 1
+import dcgeig.utils as utils
 
 
 
@@ -143,7 +98,7 @@ def multilevel_bisection(A, n_direct):
     n = A.shape[0]
 
     if n <= n_direct:
-        tree = Tree.make_leaf_node({'n': n})
+        tree = binary_tree.make_leaf_node(n)
         perm = NP.arange(n)
         return tree, perm
 
@@ -161,7 +116,7 @@ def multilevel_bisection(A, n_direct):
     assert NP.sum(~t) == perm22.shape[0]
     assert left_child.n + right_child.n == n
 
-    tree = Tree.make_internal_node(left_child, right_child, {'n': n})
+    tree = binary_tree.make_internal_node(left_child, right_child, n)
 
     p = NP.arange(n)
     p1 = p[t]
@@ -190,7 +145,7 @@ def multilevel_nested_dissection(A, n_direct):
     if n <= n_direct:
         perm = NP.arange(n)
         sizes = NP.array([n/2, n-n/2, 0])
-        tree = Tree.make_leaf_node({'n': n})
+        tree = binary_tree.make_leaf_node(n)
         return tree, perm
 
 
@@ -219,27 +174,79 @@ def multilevel_nested_dissection(A, n_direct):
     perm_ret = NP.concatenate( [p_1[q_1], p_2[q_2], p_3] )
     assert NP.all( NP.sort(perm_ret) == NP.arange(n) )
 
-    tree = Tree.make_internal_node(left_sizes, right_sizes, {'n': n})
+    tree = binary_tree.make_internal_node(left_sizes, right_sizes, n)
 
     return tree, perm_ret
 
 
 
-def add_postorder_id(tree, sid=1):
-    assert isinstance(tree, Tree)
-    assert not hasattr(tree, 'id')
+def get_submatrices_bisection(node, A):
+    assert isinstance(node, binary_tree.Node)
+    assert not node.is_leaf_node()
+    assert SS.isspmatrix_csc(A)
+    assert utils.is_hermitian(A)
 
-    if Tree.is_leaf_node(tree):
-        new_tree = copy.copy(tree)
-        new_tree.id = sid
-        return new_tree
+    n = node.n
+    n1 = node.left_child.n
+    n2 = node.right_child.n
 
-    new_left = add_postorder_id(tree.left_child, sid)
-    new_right= add_postorder_id(tree.right_child, new_left.id+1)
+    assert n == A.shape[0]
+    assert n == n1 + n2
 
-    new_tree = copy.copy(tree)
-    new_tree.left_child = new_left
-    new_tree.right_child = new_right
-    new_tree.id = new_right.id + 1
+    A_1 = A[:,:n1]
+    A11 = A_1[:n1,:]
+    A12 = A_1[n1:,:]
+    A22 = A[:,n1:][n1:,:]
 
-    return new_tree
+    return A11, A22, A12
+
+
+
+# This function finds all connected components in the graph induced by |K|+|M|
+# and merges all nodes without edges into one component.
+def get_subproblems(K, M):
+    assert utils.is_hermitian(K)
+    assert utils.is_hermitian(M)
+
+    n = K.shape[0]
+    assert n > 0
+
+
+    # construct induced graph with diagonal entries set to zero
+    # (no self-loops)
+    U = abs(SS.triu(K, 1)) + abs(SS.triu(M, 1))
+    G = U + U.T
+    assert NP.isrealobj(G)
+
+
+    # find disconnected nodes
+    t = LA.norm(G, ord=float('inf'), axis=0) == 0
+
+
+    if NP.all(t):
+        return 1, NP.full(n, 0, dtype=int)
+
+
+    # find connected components
+    H = G[:,~t][~t,:]
+    l_H, labels_H = scipy.sparse.csgraph.connected_components(H, directed=False)
+
+    assert max(labels_H) < l_H
+
+    # compute return values
+    if NP.any(t):
+        l = l_H + 1
+
+        labels = NP.full( n, NP.nan, dtype=labels_H.dtype )
+        labels[t] = l_H
+        labels[~t] = labels_H
+    else:
+        l = l_H
+        labels = labels_H
+
+    assert l >= 1
+    assert labels.size == n
+    assert NP.all( labels >= 0 )
+    assert NP.all( labels < l )
+
+    return l, labels

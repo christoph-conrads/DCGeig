@@ -15,30 +15,8 @@ import numpy.random
 import scipy.sparse as SS
 import scipy.sparse.linalg as LA
 
+import dcgeig.binary_tree as binary_tree
 import dcgeig.sparse_tools as sparse_tools
-from dcgeig.sparse_tools import Tree
-
-
-
-class Test_Tree(unittest.TestCase):
-    def test_simple(self):
-        data = {'a': 1, 'b': 2.0, 'c': 'd'}
-        tree = Tree.make_leaf_node(data)
-
-        self.assertEqual( tree.a, data['a'] )
-        self.assertEqual( tree.b, data['b'] )
-        self.assertEqual( tree.c, data['c'] )
-
-
-    def test_invalid(self):
-        data = {1: '2'}
-
-        with self.assertRaises(ValueError):
-            tree = Tree.make_leaf_node(data)
-
-        with self.assertRaises(ValueError):
-            leaf = Tree.make_leaf_node({})
-            tree = Tree.make_internal_node(leaf, leaf, data)
 
 
 
@@ -107,7 +85,7 @@ class Test_multilevel_bisection(unittest.TestCase):
     def check_tree(self, n, tree):
         self.assertEqual( tree.n, n )
 
-        if Tree.is_leaf_node(tree):
+        if tree.is_leaf_node():
             return
 
         self.assertTrue( hasattr(tree, 'left_child') )
@@ -116,8 +94,8 @@ class Test_multilevel_bisection(unittest.TestCase):
         left = tree.left_child
         right = tree.right_child
 
-        self.assertTrue( isinstance(left, Tree) )
-        self.assertTrue( isinstance(right, Tree) )
+        self.assertTrue( isinstance(left, binary_tree.Node) )
+        self.assertTrue( isinstance(right, binary_tree.Node) )
 
         self.assertEqual( left.n + right.n, n )
 
@@ -141,7 +119,7 @@ class Test_multilevel_bisection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_bisection(A, n)
 
         self.check_return_values(n, tree, perm)
-        self.assertEqual( Tree.get_height(tree), 0 )
+        self.assertEqual( tree.get_height(), 0 )
 
 
 
@@ -151,7 +129,7 @@ class Test_multilevel_bisection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_bisection(A, 1)
 
         self.check_return_values(n, tree, perm)
-        self.assertEqual( Tree.get_height(tree), 2 )
+        self.assertEqual( tree.get_height(), 2 )
 
 
 
@@ -173,7 +151,7 @@ class Test_multilevel_bisection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_bisection(B, 2)
 
         self.check_return_values(n, tree, perm)
-        self.assertTrue( Tree.get_height(tree), 3 )
+        self.assertTrue( tree.get_height(), 3 )
 
         C = B[:,perm][perm,:]
         self.assertEqual( LA.norm(C[:,:4][4:,:], 'fro')**2, 16 )
@@ -186,7 +164,7 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
     def check_tree(self, n, tree):
         self.assertEqual( tree.n, n )
 
-        if Tree.is_leaf_node(tree):
+        if tree.is_leaf_node():
             return
 
         self.assertTrue( hasattr(tree, 'left_child') )
@@ -195,8 +173,8 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         left = tree.left_child
         right = tree.right_child
 
-        self.assertTrue( isinstance(left, Tree) )
-        self.assertTrue( isinstance(right, Tree) )
+        self.assertTrue( isinstance(left, binary_tree.Node) )
+        self.assertTrue( isinstance(right, binary_tree.Node) )
 
         self.assertTrue( left.n + right.n <= n )
 
@@ -221,7 +199,7 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_nested_dissection(A, n)
 
         self.check_return_values(n, tree, perm)
-        self.assertEqual( Tree.get_height(tree), 0 )
+        self.assertEqual( tree.get_height(), 0 )
 
 
 
@@ -231,7 +209,7 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_nested_dissection(A, 1)
 
         self.check_return_values(n, tree, perm)
-        self.assertEqual( Tree.get_height(tree), 2 )
+        self.assertEqual( tree.get_height(), 2 )
 
 
 
@@ -259,7 +237,7 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
         tree, perm = sparse_tools.multilevel_nested_dissection(B, n_direct)
 
         self.check_return_values(n, tree, perm)
-        self.assertTrue( Tree.get_height(tree), 3 )
+        self.assertTrue( tree.get_height(), 3 )
 
         n_1 = tree.left_child.n
         n_2 = tree.right_child.n
@@ -277,41 +255,44 @@ class Test_multilevel_nested_dissection(unittest.TestCase):
 
 
 
-class Test_add_postorder_id(unittest.TestCase):
-    def check_tree(self, tree):
-        self.assertTrue( isinstance(tree.id, int) )
-
-        if Tree.is_leaf_node(tree):
-            return
-
-        self.assertTrue( hasattr(tree, 'left_child') )
-        self.assertTrue( hasattr(tree, 'right_child') )
-
-        left = tree.left_child
-        right = tree.right_child
-
-        self.assertTrue( isinstance(left, Tree) )
-        self.assertTrue( isinstance(right, Tree) )
-
-        self.assertTrue( left.id < right.id )
-        self.assertEqual( right.id + 1, tree.id )
-
-        self.check_tree(tree.left_child)
-        self.check_tree(tree.right_child)
-
-
+class Test_get_subproblems(unittest.TestCase):
     def test_simple(self):
-        self.check_tree( Tree.make_leaf_node({'id': -123}) )
+        K = SS.csc_matrix([
+            [1, 0, 0, 0, 0, 0],
+            [0, 2, 1, 0, 0, 0],
+            [0, 1, 3, 0, 0, 0],
+            [0, 0, 0, 4, 0, 0],
+            [0, 0, 0, 0, 5, 0],
+            [0, 0, 0, 0, 0, 6]
+        ], dtype=NP.complex64)
+        M = SS.csc_matrix([
+            [1, 0, 0, 0, 0, 0],
+            [0, 2, 0, 0, 0, 0],
+            [0, 0, 3, 0, 0, 0],
+            [0, 0, 0, 4, 0-1j, 0],
+            [0, 0, 0, 0+1j, 5, 0],
+            [0, 0, 0, 0, 0, 6]
+        ], dtype=NP.complex64)
+
+        l, labels = sparse_tools.get_subproblems(K, M)
+
+        self.assertEqual( l, 3 )
+        self.assertEqual( labels[0], labels[-1] )
+        self.assertEqual( labels[1], labels[2] )
+        self.assertEqual( labels[3], labels[4] )
+        self.assertEqual( labels.size, K.shape[0] )
 
 
-    def test_unbalanced(self):
-        t0 = Tree.make_leaf_node({'id': 100})
-        t1 = Tree.make_leaf_node({'id': 101})
-        t2 = Tree.make_internal_node(t0, t1, {'id': 102})
-        t3 = Tree.make_leaf_node({'id': 103})
-        t4 = Tree.make_internal_node(t2, t3, {'id': 104})
+    def test_diagonal(self):
+        n = 3
+        A = SS.identity(n, dtype=NP.complex128)
 
-        self.check_tree(t4)
+        l, labels = sparse_tools.get_subproblems(A, A)
+
+        self.assertEqual( l, 1 )
+        self.assertTrue( NP.all(labels == 0) )
+        self.assertEqual( labels.size, n )
+
 
 
 if __name__ == '__main__':

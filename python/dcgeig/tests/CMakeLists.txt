@@ -1,10 +1,12 @@
 install(FILES
 		__init__.py
-		test_direct_substructuring.py
+		test_binary_tree.py
 		test_error_analysis.py
+		test_gallery.py
+		test_linalg.py
 		test_metis.py
-		test_multilevel_solver.py
-		test_multilevel_tools.py
+		test_polynomial.py
+		test_solver.py
 		test_solvers.py
 		test_sparse_tools.py
 		test_subspace_iteration.py

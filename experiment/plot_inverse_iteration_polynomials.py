@@ -5,35 +5,11 @@
 import sys
 
 import numpy as NP
+import numpy.polynomial.chebyshev as NPC
+
 import matplotlib.pyplot as PP
 
 import numbers
-
-
-def C(k, t):
-    assert isinstance(k, int)
-    assert k >= 0
-
-    if k == 0:
-        return 1
-    if k == 1:
-        return t
-
-    return 2 * t * C(k-1, t) - C(k-2, t)
-
-
-
-def poly(k, c, e, tau, xs):
-    assert isinstance(k, int)
-    assert k >= 0
-    assert isinstance(c, numbers.Real)
-    assert isinstance(e, numbers.Real)
-    assert e > 0
-    assert isinstance(tau, numbers.Real)
-    assert abs(tau - c) > e
-
-    return C(k, (xs-c)/e) / C(k, (tau-c)/e)
-
 
 
 def get_ellipse(a, b):
@@ -48,39 +24,102 @@ def get_ellipse(a, b):
 
 
 
+def make_chebyshev_polynomial(k, a, b):
+    assert isinstance(k, int)
+    assert k >= 0
+
+    coeffs = NP.zeros(k+1)
+    coeffs[-1] = 1
+
+    c, e = get_ellipse(a, b)
+
+    def f(xs):
+        return NPC.chebval( (xs-c)/e, coeffs )
+
+    return f
+
+
+
+def compute_jackson_coefficients(n):
+    assert isinstance(n, int)
+    assert n >= 0
+
+    if n == 0:
+        return NP.full_like(xs, 1)
+
+    k = 1.0 * NP.arange(0, n+1)
+    r = NP.pi / (n+1)
+    cs = (1 - k/(n+1)) * NP.cos(k*r) + NP.sin(k*r) / ((n+1) * NP.tan(r))
+
+    assert cs.size == n+1
+
+    return cs
+
+
+
+def heaviside(xs):
+    if not isinstance(xs, NP.ndarray):
+        return 0 if xs < 0 else 1
+
+    t = xs >= 0
+    ys = NP.empty_like(xs)
+    ys[t] = 1
+    ys[~t] = 0
+
+    return ys
+
+
+
+def fit_chebyshev_jackson_polynomial(k, f):
+    assert isinstance(k, int)
+    assert k >= 0
+
+    xs = NP.linspace(-1, +1, 100 )
+    ys = f(xs)
+
+    cs = NPC.chebfit(xs, ys, k)
+    gs = compute_jackson_coefficients(k)
+
+    return cs * gs
+
+
+
+def make_heaviside_approximation(k, a, b):
+    assert isinstance(k, int)
+    assert k >= 0
+
+    is_odd = lambda n: (n%2) == 1
+
+    c, e = get_ellipse(a, b)
+    cs = fit_chebyshev_jackson_polynomial(k, heaviside)
+    cs[2::2] = 0
+    if is_odd(k):
+        cs[-1] = 0
+
+    def f(xs):
+        return NPC.chebval((xs-c)/e, cs)
+
+    return f
+
+
+
 def cayley(xs, p):
     return 1/xs * (xs - p)
 
 
 
-# poly(k, c, e, tau, t) evaluated iteratively
-def chebychev(degree, c, e, tau, t):
-    assert isinstance(degree, int)
-    assert degree >= 0
-    assert isinstance(c, numbers.Real)
-    assert c > 0
-    assert isinstance(e, numbers.Real)
-    assert e > 0
-    assert isinstance(tau, numbers.Real)
-    assert abs(tau - c) > e
+def print_stats(label, make_f, degrees, a, b, x2, x1, x0, m=100):
+    assert isinstance(a, numbers.Real)
+    assert isinstance(b, numbers.Real)
+    assert a < b
 
-    a = NP.full(degree, NP.nan)
-    a[0] = e / (tau - c)
+    fmt = '{:24s} {:2d}  {:8.2e} {:8.2e}  {:8.2e}'
 
-    for k in xrange(degree-1):
-        a[k+1] = 1 / (2/a[0] - a[k])
+    for k in degrees:
+        f = make_f(k, a, b)
+        g = lambda x: f(1/x) / f(1/x0)
 
-    p0 = NP.full_like(t, 1)
-    p1 = (t - c) / (tau - c)
-
-    for k in xrange(degree-1):
-        p2 = 2*a[k+1]/e * (t-c) * p1 - a[k+1]*a[k] * p0
-
-        p0 = p1
-        p1 = p2
-        del p2
-
-    return p1
+        print fmt.format( label, k, g(x2), g(x1), f(1/x2)/f(1/x1) )
 
 
 
@@ -88,10 +127,7 @@ def main(argv):
     lambda_1 = 0.05;
     lambda_c = 1.0;
     a = 10.0 * lambda_c;
-    b = NP.sqrt(2) * 10.0 * lambda_c;
-
-    tau = 1/lambda_c
-    c, e = get_ellipse(1/b, 1/a)
+    b = float('inf')
 
     left = lambda_1
     right = 30*lambda_c
@@ -100,29 +136,56 @@ def main(argv):
     xs = NP.linspace(left, right, num=1000)
     assert NP.all( xs > 0 )
 
-    chebychev_label='chebychev({:d}, {:.1f}, {:.1f})'
 
-    for k in range(1, 4):
-        ys = poly(k, c, e, tau, 1/xs) / poly(k, c, e, tau, 1/x0)
+    print_stats( \
+        '1/x', lambda k, a, b: (lambda x: x),
+        [1], 0, 1.0/a, lambda_1, lambda_c, a)
+    print_stats( \
+        'Chebyshev', make_chebyshev_polynomial,
+        [2,3,6], 0, 1.0/a, lambda_1, lambda_c, a)
+    print_stats( \
+        'Chebyshev-Jackson', make_heaviside_approximation,
+        [5,7], 0, 1.0/(2*a), lambda_1, lambda_c, a)
+    print_stats( \
+        'Chebyshev-Jackson(shift)', make_heaviside_approximation,
+        [5,7], 0, 1.0/(2*a), lambda_1+lambda_c, lambda_c+lambda_c, a+lambda_c)
 
-        PP.plot(xs, abs(ys), label=chebychev_label.format(k, a, b))
+
+    # plot chebyshev polynomial damping
+    chebyshev_label='Chebyshev({:d}, {:.1f}, {:.1f})'
+
+    for k in [2,3,6]:
+        f = make_chebyshev_polynomial(k, 1/b, 1/a)
+        ys = f(1/xs) / f(1/x0)
+
+        PP.plot(xs, abs(ys), label=chebyshev_label.format(k, a, b))
 
 
+    # cayley
     cs = 50 * cayley(xs, a) / cayley(lambda_c, a)
-    PP.plot(xs, abs(cs), label='cayley')
+    PP.plot(xs, abs(cs), 'k:', linewidth=2.0, label='Cayley')
 
-    PP.plot(xs, x0/xs, label='1/x')
 
-    inf = float('inf')
-    c_inf = (1/a + 1/inf) / 2
-    e_inf = (1/a - 1/inf) / 2
-    k = 2
-    zs = C(k, (1/xs - c_inf) / e_inf) / C(k, (1/x0 - c_inf) / e_inf)
-    PP.plot( xs, abs(zs), label=chebychev_label.format(k, a, inf) )
+    # 1/x
+    PP.plot(xs, x0/xs, 'k', label='1/x')
 
+
+    # heaviside + chebyshev-jackson polynomial damping
+    fmt = 'Chebyshev-Jackson({:d})'
+
+    for k in [3, 5, 7]:
+        f = make_heaviside_approximation(k, 0, 1.0/(2*a))
+        ys = f(1/xs) / f(1/x0)
+
+        PP.plot( xs, abs(ys), '--', label=fmt.format(k) )
+
+
+    # plot vertical lines
     PP.plot( (lambda_c,lambda_c), (0, 1e11), 'k-' )
     PP.plot( (a, a), (0, 1e11), 'k-' )
 
+
+    # modify plot
     axes = PP.gca()
     axes.set_xlim([left, right])
     axes.set_ylim([1e-3, 1e6])

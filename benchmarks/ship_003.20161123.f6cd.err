@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/tmp/install/bin/dcgeig", line 252, in <module>
+    sys.exit( main() )
+  File "/tmp/install/bin/dcgeig", line 228, in main
+    rs, labels = solver.execute(options, A, B, lambda_c)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 395, in execute
+    rs = map( call_solve_gep, range(l) )
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 360, in call_solve_gep
+    compute_search_space(lambda_c/s, eta_max, delta_max, root, K, M)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 219, in compute_search_space
+    compute_search_space(lambda_c, eta_max, delta_max, right, K22, M22)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 217, in compute_search_space
+    compute_search_space(lambda_c, eta_max, delta_max, left, K11, M11)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 219, in compute_search_space
+    compute_search_space(lambda_c, eta_max, delta_max, right, K22, M22)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/solver.py", line 200, in compute_search_space
+    d, X = linalg.rayleigh_ritz(K, M)
+  File "/tmp/install/lib/python2.7/site-packages/dcgeig/linalg.py", line 72, in rayleigh_ritz
+    d, X_Q = dcgeig.deflation(A, B)
+  File "solvers.pyx", line 517, in solvers.deflation (python/solvers.c:10199)
+  File "solvers.pyx", line 583, in solvers.call_solve_gep_with_deflation_double (python/solvers.c:11584)
+  File "/home/starfish/lib64/python2.7/site-packages/numpy/core/numeric.py", line 290, in full
+    a = empty(shape, dtype, order)
+MemoryError

@@ -1,0 +1,39 @@
+\documentclass{standalone}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\input{font.txt}
+
+
+\usepackage{textcomp}
+\usepackage{gensymb}
+
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.11}
+
+
+\begin{document}
+\begin{tikzpicture}
+	\begin{axis}[
+			width=400pt,
+			xlabel={x},
+			ylabel={y},
+			grid=major,
+			xmin=-1, xmax=+1,
+			ymax=1.3,
+			legend pos=north west,
+			legend cell align=left,
+			legend columns=2,
+		]
+		\addplot[mark=none, color=blue, thick]
+		table [x=x, y=chebyshev] {chebyshev-vs-jackson-degree50.data};
+		\addlegendentry{Chebyshev}
+
+		\addplot[mark=none, color=green, dashed, very thick]
+		table [x=x, y=chebyshev-jackson] {chebyshev-vs-jackson-degree50.data};
+		\addlegendentry{Chebyshev-Jackson}
+	\end{axis}
+\end{tikzpicture}
+\end{document}

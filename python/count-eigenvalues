@@ -1,0 +1,250 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
+# Copyright 2016 Christoph Conrads
+#
+# This file is part of DCGeig and it is subject to the terms of the DCGeig
+# license. See http://DCGeig.tech/license for a copy of this license.
+
+import dcgeig
+import dcgeig.error_analysis as error_analysis
+import dcgeig.solver as solver
+import dcgeig.sparse_tools as sparse_tools
+import dcgeig.utils as utils
+from dcgeig.options import Options
+
+import numpy as NP
+import numpy.polynomial.chebyshev as NPC
+
+import scipy.sparse as SS
+import scipy.sparse.linalg as LA
+
+import scipy.io as IO
+
+import argparse
+
+import copy
+
+import sys
+import os.path as OP
+
+import time
+
+
+
+def check_if_positive_integer(string):
+    i = int(string)
+    if (i <= 0):
+        msg = '{0} is an invalid positive integer value'
+        raise argparse.ArgumentTypeError(msg.format(string))
+
+    return i
+
+
+
+def check_if_positive_real(string):
+    f = float(string)
+    if (f <= 0) or NP.isnan(f) or NP.isinf(f):
+        msg = '{0} is an invalid positive real value'
+        raise argparse.ArgumentTypeError(msg.format(string))
+
+    return f
+
+
+
+def check_if_nonnegative_real(string):
+    f = float(string)
+    if (f < 0) or NP.isnan(f) or NP.isinf(f):
+        msg = '{0} is an invalid non-negative real value'
+        raise argparse.ArgumentTypeError(msg.format(string))
+
+    return f
+
+
+
+def make_argument_parser(default_options):
+    description = \
+        'This program estimates the number of eigenvalues of a Hermitian \
+        semidefinite GEP.'
+
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='%(prog)s {0}'.format(dcgeig.__version__))
+
+    parser.add_argument(
+        'file',
+        type=str,
+        help='path to the file containing the stiffness matrix in Matrix Market format')
+
+    parser.add_argument(
+        'cutoff',
+        type=check_if_positive_real,
+        help='the largest desired eigenvalue')
+
+
+    parser.add_argument(
+        '--max-dim-direct-solve',
+        metavar='n_direct',
+        default=1000,
+        type=check_if_positive_integer,
+        help='maximum dimension for direct GEP solves')
+
+    parser.add_argument(
+        '--degree',
+        metavar='d',
+        default=50,
+        type=check_if_positive_integer,
+        help='the degree of the polynomial approximation to the projection')
+
+    parser.add_argument(
+        '--num-trial-vectors',
+        metavar='n_trial',
+        default=50,
+        type=check_if_positive_integer,
+        help='the number of trial vectors used for each trace estimate')
+
+
+    parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        help='only print one line of solution information')
+
+    return parser
+
+
+
+def normalize_path(filename):
+    assert isinstance(filename, str)
+
+    path = OP.expanduser(filename)
+    abs_path = path if OP.isabs(path) else OP.abspath(path)
+
+    return abs_path
+
+
+
+def sanitize_matrix_pencil(K, M):
+    if not utils.is_hermitian(K):
+        raise ValueError('K must be Hermitian')
+    if not SS.isspmatrix(K):
+        raise ValueError('K must be sparse')
+
+    if not utils.is_hermitian(M):
+        raise ValueError('M must be Hermitian')
+    if not SS.isspmatrix(M):
+        raise ValueError('K must be sparse')
+
+    if K.shape[0] != M.shape[0]:
+        raise ValueError('Matrices must have the same dimension')
+
+    A = SS.csc_matrix(K)
+    B = SS.csc_matrix(M)
+
+    return A, B
+
+
+
+def sanitize_input(options, user_options):
+    options.lambda_c = user_options['cutoff']
+    options.k_path = normalize_path( user_options['file'] )
+    options.n_direct = user_options['max_dim_direct_solve']
+    options.degree = user_options['degree']
+    options.n_trial_vectors = user_options['num_trial_vectors']
+    options.be_quiet = user_options['quiet']
+
+
+    # get stiffness matrix
+    k_path = options.k_path
+    K = IO.mmread(k_path)
+
+
+    # get mass matrix
+    M = SS.identity(K.shape[0], dtype=K.dtype)
+    options.m_path = None
+
+    k_dirname = OP.dirname(k_path)
+    k_basename = OP.basename(k_path)
+    assert k_basename != ''
+    options.filename = k_basename
+
+    if str.count(k_basename, 'k') == 1:
+        m_basename = str.replace(k_basename, 'k', 'm')
+        m_path = OP.join(k_dirname, m_basename)
+
+        try:
+            M = IO.mmread(m_path).astype(K.dtype)
+            options.m_path = m_path
+        except IOError as e:
+            if e.errno != 2:
+                raise
+
+    assert K.dtype == M.dtype
+
+
+    A, B = sanitize_matrix_pencil(K, M)
+
+    return options, A, B
+
+
+class SuperLL:
+    def __init__(self, A):
+        LU = LA.splu(A, diag_pivot_thresh=0.0)
+        self.LU = LU
+        self.shape = LU.shape
+        self.matvec = LU.solve
+
+
+def main():
+    default_options = Options()
+    argument_parser = make_argument_parser(default_options)
+    namespace = argument_parser.parse_args()
+
+    options, A, B = sanitize_input(default_options, vars(namespace))
+    n = A.shape[0]
+    lambda_c = options.lambda_c
+
+
+    # shift stiffness matrix
+    K = A + lambda_c * B
+    M = B
+
+
+    # normalize stiffness matrix norm
+    I = SS.identity(n, format='csc', dtype=A.dtype)
+    s, _ = sparse_tools.balance_matrix_pencil(I / LA.norm(I), K)
+
+    K = s*K
+    M = s*M
+
+    del s
+    del I
+
+
+    # balance matrix pencil
+    s, D = sparse_tools.balance_matrix_pencil(K, M)
+    K = SS.csc_matrix(D * K * D)
+    M = SS.csc_matrix(D * (s*M) * D)
+
+
+    # estimate count
+    a = lambda_c / s
+    b = 2*a
+    d = options.degree
+    n_trial = options.n_trial_vectors
+
+    t0 = time.clock()
+    mean, std = solver.estimate_eigenvalue_count(K, M, a, b, d, n_trial)
+    t1 = time.clock()
+
+
+    # print data
+    fmt = '{:20s} {:6d} {:8.2e} {:7.2f} ± {:6.2f} {:6.1f}s'
+    filename = options.filename
+    print fmt.format(filename, n, lambda_c, mean, std, t1-t0)
+
+
+
+if __name__ == '__main__':
+    sys.exit( main() )

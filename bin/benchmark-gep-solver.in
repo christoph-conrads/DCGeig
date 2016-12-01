@@ -26,7 +26,7 @@ exec 3<${problems}
 exec 1> >(tee --ignore-interrupts -- ${stdout})
 
 # print header
-echo benchmark multilevel-gep-solver
+echo benchmark dcgeig
 echo git commit ${GIT_COMMIT}
 echo hostname $(hostname)
 echo cpu model \
@@ -44,12 +44,10 @@ time \
 		path=$(gawk '{print $1}' <<< ${args})
 		file=$(basename -- ${path})
 		problem=$(basename --suffix=.mtx -- ${path})
-		stats="${problem}.${key}.log"
 		stderr="${problem}.${key}.err"
 
-		multilevel-gep-solver \
+		dcgeig \
 			--quiet \
-			--stats ${stats} \
 			-- ${args} \
 			2>${stderr}
 
