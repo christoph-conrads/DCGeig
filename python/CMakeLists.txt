@@ -1,12 +1,7 @@
 find_package(PythonInterp 2 REQUIRED)
 find_package(PythonLibs 2 REQUIRED)
 find_program(CYTHON_EXECUTABLE cython)
-find_library(METIS_LIBRARIES metis)
-
-
-if(NOT METIS_LIBRARIES)
-	message(FATAL_ERROR "metis not found")
-endif(NOT METIS_LIBRARIES)
+find_package(Metis REQUIRED)
 
 
 set(PYTHON_DIR "python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
@@ -42,7 +37,6 @@ add_library(metis SHARED metis.c)
 set_target_properties(metis PROPERTIES PREFIX "")
 target_compile_options(metis PUBLIC ${CYTHON_CFLAGS})
 target_include_directories(metis PUBLIC ${PYTHON_INCLUDE_DIRS})
-target_include_directories(metis PUBLIC ${NUMPY_INCLUDE_DIRS})
 target_include_directories(metis PUBLIC ${NUMPY_INCLUDE_DIRS})
 target_link_libraries(metis PUBLIC ${PYTHON_LIBRARIES})
 target_link_libraries(metis PUBLIC ${METIS_LIBRARIES})
