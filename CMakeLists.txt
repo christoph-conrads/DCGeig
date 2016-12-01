@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2.0)
-project(dcgeig VERSION 1.2.0)
+project(dcgeig VERSION 2.0.0)
 
 
 # set variables
