@@ -1,8 +1,11 @@
 /*
  * Copyright 2015-2016 Christoph Conrads
  *
- * This file is part of DCGeig and it is subject to the terms of the DCGeig
- * license. See http://DCGeig.tech/license for a copy of this license.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * This Source Code Form is "Incompatible With Secondary Licenses", as
+ * defined by the Mozilla Public License, v. 2.0.
  */
 #include <config.h>
 #include <hpsd_gep_solvers.hpp>

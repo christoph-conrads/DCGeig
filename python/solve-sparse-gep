@@ -3,8 +3,11 @@
 
 # Copyright 2016 Christoph Conrads
 #
-# This file is part of DCGeig and it is subject to the terms of the DCGeig
-# license. See http://DCGeig.tech/license for a copy of this license.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 import dcgeig
 import dcgeig.error_analysis as error_analysis
@@ -14,7 +17,7 @@ import dcgeig.utils as utils
 from dcgeig.options import Options
 
 import numpy as NP
-import numpy.polynomial.chebyshev as NPC
+import numpy.random
 
 import scipy.sparse as SS
 import scipy.sparse.linalg as LA
@@ -222,6 +225,8 @@ def main():
     options, A, B = sanitize_input(default_options, namespace)
     n = A.shape[0]
     lambda_c = options.lambda_c
+
+    numpy.random.seed(1)
 
     t0 = time.time()
     c0 = time.clock()

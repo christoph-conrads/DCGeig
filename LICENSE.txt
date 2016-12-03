@@ -1,6 +1,0 @@
-For non-commercial purposes, this software is licensed under the Mozilla Public
-License 2.0 (MPL 2.0). A copy of the MPL 2.0 can be found in the file "MPL2.0"
-or at http://mozilla.org/MPL/2.0/.
-
-For commercial purposes, you can license the software by contacting the author:
-  contact AT DCGeig DOT tech
