@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2016 Christoph Conrads
+ * Copyright 2015-2016, 2018 Christoph Conrads
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,7 @@
 # include <algorithm>
 #endif
 
-#ifdef USE_MKL
+#ifdef HAS_INTEL_MKL
 # include <mkl.h>
 #else
 # include <lapacke.h>
@@ -44,7 +44,7 @@ namespace lapack
 		template<typename T>
 		T* return_not_null(T* p)
 		{
-#ifdef USE_MKL
+#ifdef HAS_INTEL_MKL
 			return p ? p : (T*)-1;
 #else
 			return p;
@@ -350,7 +350,7 @@ inline float lanhe(
 {
 	assert( (std::toupper(norm) != 'I') || work );
 
-#ifdef USE_MKL
+#ifdef HAS_INTEL_MKL
 	// work around a bug with Intel MKL 11.3 Update 2
 	const int num_threads = MKL_Set_Num_Threads_Local(1);
 	const float ret = slansy(&norm, &uplo, &n, A, &lda, work);
@@ -367,7 +367,7 @@ inline double lanhe(
 {
 	assert( (std::toupper(norm) != 'I') || work );
 
-#ifdef USE_MKL
+#ifdef HAS_INTEL_MKL
 	// work around a bug with Intel MKL 11.3 Update 2
 	const int num_threads = MKL_Set_Num_Threads_Local(1);
 	const double ret = dlansy(&norm, &uplo, &n, A, &lda, work);
@@ -418,6 +418,8 @@ inline integer_t lascl(
 
 
 
+#ifdef HAS_INTEL_MKL
+
 inline void lascl2(
 	integer_t m, integer_t n, const float* D, float* X, integer_t ldx)
 {
@@ -429,6 +431,24 @@ inline void lascl2(
 {
 	dlascl2_(&m, &n, D, X, &ldx);
 }
+
+#else
+
+template<typename T>
+void lascl2(
+	integer_t m, integer_t n, const T* D, T* X, integer_t ldx)
+{
+	for(ssize_t j = 0; j < n; ++j)
+	{
+		for(ssize_t i = 0; i < m; ++i)
+		{
+			ssize_t k = i + (j-1) * ldx;
+			X[k] *= D[k];
+		}
+	}
+}
+
+#endif
 
 
 

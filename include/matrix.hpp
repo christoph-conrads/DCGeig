@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Christoph Conrads
+ * Copyright 2015, 2018 Christoph Conrads
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,6 +12,7 @@
 
 #include <algorithm>
 
+#include <cmath>
 #include "lapack.hpp"
 #include <limits>
 

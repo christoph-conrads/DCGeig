@@ -1,4 +1,4 @@
-# Copyright 2016 Christoph Conrads
+# Copyright 2016, 2018 Christoph Conrads
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -42,6 +42,7 @@ add_custom_command(
 add_library(metis SHARED metis.c)
 set_target_properties(metis PROPERTIES PREFIX "")
 target_compile_options(metis PUBLIC ${CYTHON_CFLAGS})
+target_include_directories(metis PUBLIC ${METIS_INCLUDE_DIRS})
 target_include_directories(metis PUBLIC ${PYTHON_INCLUDE_DIRS})
 target_include_directories(metis PUBLIC ${NUMPY_INCLUDE_DIRS})
 target_link_libraries(metis PUBLIC ${PYTHON_LIBRARIES})

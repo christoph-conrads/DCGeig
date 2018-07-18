@@ -1,14 +1,16 @@
-# Copyright 2016 Christoph Conrads
+# Copyright 2016, 2018 Christoph Conrads
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-if(USE_MKL)
+if("${BLAS}" STREQUAL "mkl")
+	set(HAS_INTEL_MKL True)
 	set(HAS_GGSVD3 False)
-else(USE_MKL)
+else()
+	set(HAS_INTEL_MKL False)
 	set(HAS_GGSVD3 True)
-endif(USE_MKL)
+endif()
 
 configure_file(config.h.in config.h)
 

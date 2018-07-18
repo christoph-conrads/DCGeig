@@ -25,7 +25,7 @@ You need the following software:
 - git
 - bash
 
-BLAS and LAPACK can also be provided by Intel MKL 11.2 (or newer) and
+BLAS and LAPACK can be provided by OpenBLAS or by Intel MKL 11.2 or newer and
 instructions for this build are given below. Note that NumPy and SciPy need to
 be linked against Intel MKL, too, if you want to see any speed-up. Instructions
 for such a build can be found here:
@@ -71,9 +71,7 @@ Installation with Intel MKL
 - Configure the build with cmake:
     cmake \
 	  -DCMAKE_INSTALL_PREFIX="${prefixdir}" \
-	  -DUSE_MKL=ON \
-	  -DMKL_INCLUDE_DIR="${MKLROOT}/include" \
-	  -DMKL_LIBRARY_PATH="${MKLROOT}/lib/intel64" \
+	  -DBLAS=mkl -DMKL_ROOT="$MKLROOT" \
 	  "${sourcedir}"
 
 - Build the solvers:
